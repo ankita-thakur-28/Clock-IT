@@ -1,0 +1,49 @@
+services:
+  # ─── 1. Spring Boot API Backend Web Service ───
+  - type: web
+    name: clockit-backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    region: oregon
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: 8088
+      - key: SPRING_DATASOURCE_URL
+        fromDatabase:
+          name: clockit-postgres
+          property: connectionString
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: clockit-postgres
+          property: user
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase:
+          name: clockit-postgres
+          property: password
+
+  # ─── 2. Expo Web Frontend Static Site ───
+  - type: web
+    name: clockit-frontend
+    env: static
+    buildCommand: cd mobile && npm install && npx expo export -p web
+    staticPublishPath: ./mobile/dist
+    plan: free
+    region: oregon
+    envVars:
+      - key: EXPO_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: clockit-backend
+          property: host
+          valueFormat: https://%s/api
+
+# ─── 3. Managed PostgreSQL Database ───
+databases:
+  - name: clockit-postgres
+    databaseName: clockit_db
+    user: clockit_user
+    plan: free
+    region: oregon
