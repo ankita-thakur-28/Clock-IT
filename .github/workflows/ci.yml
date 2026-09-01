@@ -1,0 +1,72 @@
+name: CLOCK-IT CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  backend-test:
+    name: Backend Tests & Build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: clockit_db
+          POSTGRES_USER: clockit_user
+          POSTGRES_PASSWORD: clockit_test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run Backend Unit & Integration Tests
+        run: |
+          cd backend
+          ./mvnw clean test
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/clockit_db
+          SPRING_DATASOURCE_USERNAME: clockit_user
+          SPRING_DATASOURCE_PASSWORD: clockit_test_password
+
+  frontend-build:
+    name: Frontend Web Export
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install Frontend Dependencies
+        run: |
+          cd mobile
+          npm ci
+
+      - name: Build Static Expo Web Export
+        run: |
+          cd mobile
+          npx expo export -p web
