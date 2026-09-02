@@ -22,7 +22,6 @@ services:
     runtime: static
     buildCommand: cd mobile && npm install && npx expo export -p web
     staticPublishPath: ./mobile/dist
-    region: oregon
     routes:
       - type: rewrite
         source: /*
