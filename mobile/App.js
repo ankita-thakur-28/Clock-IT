@@ -1235,6 +1235,14 @@ export default function App() {
     Quicksand_700Bold,
   });
 
+  if (!fontsLoaded) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={THEME.pinkDeep} />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaProvider style={{ flex: 1, width: '100%', height: '100%' }}>
       <AppContent />
@@ -1345,12 +1353,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    flexWrap: 'nowrap',
+    minHeight: 52,
   },
   wordmarkText: {
     fontFamily: THEME.fonts.displayBold,
-    fontSize: 42,
+    fontSize: 38,
     color: THEME.ink,
     letterSpacing: 0.5,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   taglineText: {
     fontFamily: THEME.fonts.displayItalic,
@@ -1358,6 +1370,8 @@ const styles = StyleSheet.create({
     color: THEME.roseGold,
     marginTop: 6,
     marginBottom: 6,
+    includeFontPadding: false,
+    textAlign: 'center',
   },
   vintageClockContainer: {
     alignItems: 'center',
@@ -1365,7 +1379,8 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   ctaButtonWrapper: {
-    width: 260,
+    width: '100%',
+    maxWidth: 280,
     borderRadius: 100,
     marginTop: 14,
     shadowColor: '#F195AC',
@@ -1380,18 +1395,23 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     alignItems: 'center',
     justifyContent: 'center',
+    width: '100%',
   },
   ctaButtonText: {
     fontFamily: THEME.fonts.bodyBold,
     fontSize: 15,
     color: '#fff',
     letterSpacing: 0.4,
+    includeFontPadding: false,
+    textAlign: 'center',
   },
   secondaryText: {
     marginTop: 18,
     fontFamily: THEME.fonts.bodySemiBold,
     fontSize: 13,
     color: THEME.inkSoft,
+    includeFontPadding: false,
+    textAlign: 'center',
   },
   loginUnderline: {
     color: THEME.roseGold,
