@@ -27,4 +27,4 @@ COPY --from=builder /app/target/*.jar app.jar
 ENV PORT=8088
 EXPOSE 8088
 
-ENTRYPOINT ["java", "-jar", "-Djava.security.egd=file:/dev/./urandom", "app.jar"]
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-Djava.security.egd=file:/dev/./urandom", "-jar", "app.jar"]

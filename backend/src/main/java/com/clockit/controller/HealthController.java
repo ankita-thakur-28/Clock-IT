@@ -10,11 +10,9 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/health")
-@CrossOrigin(origins = "*")
 public class HealthController {
 
-    @GetMapping
+    @GetMapping({"/api/health", "/health", "/"})
     public ResponseEntity<Map<String, Object>> health() {
         return ResponseEntity.ok(Map.of(
                 "status", "UP",
