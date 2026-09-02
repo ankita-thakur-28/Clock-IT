@@ -12,7 +12,14 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.clockit.app"
+      "package": "com.clockit.app",
+      "versionCode": 1,
+      "permissions": [
+        "INTERNET"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFDFB"
+      }
     },
     "plugins": [
       "expo-asset",
