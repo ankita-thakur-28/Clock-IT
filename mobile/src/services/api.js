@@ -5,12 +5,14 @@ const LOCAL_MAC_IP = '192.168.0.2';
 
 export const API_BASE =
   process.env.EXPO_PUBLIC_API_URL ||
-  Platform.select({
-    android: `http://${LOCAL_MAC_IP}:8088/api`,
-    ios: `http://${LOCAL_MAC_IP}:8088/api`,
-    web: 'http://localhost:8088/api',
-    default: `http://${LOCAL_MAC_IP}:8088/api`,
-  });
+  (typeof window !== 'undefined' && window.location && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+    ? 'https://clockit-backend.onrender.com/api'
+    : Platform.select({
+        android: 'https://clockit-backend.onrender.com/api',
+        ios: 'https://clockit-backend.onrender.com/api',
+        web: 'http://localhost:8088/api',
+        default: 'https://clockit-backend.onrender.com/api',
+      }));
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = 2500) {
   const controller = new AbortController();
