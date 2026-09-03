@@ -12,11 +12,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { THEME } from '../constants/theme';
 
 export default function ProfileSettingsView({
-  name = 'Ankita',
-  milestoneType = 'Wedding',
+  name = 'Glow Prepper',
+  milestoneType = 'Milestone',
   milestoneDate,
   goal = 'Tone & Sculpt',
-  daysRemaining = 137,
+  daysRemaining = 0,
   phaseTitle = 'Foundation Phase',
   onEditMilestone,
   onResetMilestone,

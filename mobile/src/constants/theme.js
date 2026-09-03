@@ -24,6 +24,10 @@ export const THEME = {
       web: "'Quicksand', -apple-system, sans-serif",
       default: 'Quicksand_500Medium',
     }),
+    bodyMedium: Platform.select({
+      web: "'Quicksand', -apple-system, sans-serif",
+      default: 'Quicksand_500Medium',
+    }),
     bodySemiBold: Platform.select({
       web: "'Quicksand', -apple-system, sans-serif",
       default: 'Quicksand_600SemiBold',

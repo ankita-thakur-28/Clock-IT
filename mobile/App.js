@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,10 +8,12 @@ import {
   ScrollView,
   ActivityIndicator,
   Platform,
+  Animated,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as SplashScreen from 'expo-splash-screen';
 import {
   useFonts,
   PlayfairDisplay_700Bold,
@@ -47,33 +49,48 @@ import {
   updateLogForDate,
   checkBackendHealth,
 } from './src/services/api';
+import {
+  saveActiveUser,
+  getActiveUser,
+  clearActiveUser,
+  saveCachedDashboard,
+  getCachedDashboard,
+  saveDailyLog,
+  saveAllDailyLogs,
+  getAllDailyLogs,
+} from './src/services/storage';
+
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const skincareGirlImg = require('./assets/skincare_girl.png');
 const weightScaleImg = require('./assets/weight_scale.png');
 const aiTrainerImg = require('./assets/ai_trainer.png');
 const bodyCareTrayImg = require('./assets/body_care_tray.png');
 
-function AppContent() {
-  const [step, setStep] = useState('splash'); // 'splash' | 'setup' | 'countdown'
+function AppContent({ initialSession }) {
+  const hasSavedUser = Boolean(initialSession?.savedUser);
+  const [step, setStep] = useState(hasSavedUser ? 'countdown' : 'splash'); // 'splash' | 'setup' | 'countdown'
   const [loading, setLoading] = useState(false);
   const [backendHealthy, setBackendHealthy] = useState(false);
   const [activeTab, setActiveTab] = useState('today');
+  const splashFadeAnim = useRef(new Animated.Value(0)).current;
 
-  // Form State (Views 1 & 2)
-  const [name, setName] = useState('Ankita');
-  const [milestoneType, setMilestoneType] = useState('Wedding');
-  const defaultDate = new Date(Date.now() + 141 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  const [milestoneDate, setMilestoneDate] = useState(defaultDate);
-  const [goal, setGoal] = useState('Tone & Sculpt');
+  // Form State (Views 1 & 2) — completely unselected initial state
+  const [name, setName] = useState(initialSession?.savedUser?.name || '');
+  const [milestoneType, setMilestoneType] = useState(initialSession?.savedUser?.milestoneType || null);
+  const [milestoneDate, setMilestoneDate] = useState(initialSession?.savedUser?.milestoneDate || null);
+  const [goal, setGoal] = useState(initialSession?.savedUser?.goal || null);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showWeightModal, setShowWeightModal] = useState(false);
   const [showSkincareModal, setShowSkincareModal] = useState(false);
   const [showBodyCareModal, setShowBodyCareModal] = useState(false);
-  const [loggedWeight, setLoggedWeight] = useState(null);
+  const [loggedWeight, setLoggedWeight] = useState(
+    initialSession?.cachedDashboard?.todayGlow?.weightCard?.weightAm ?? null
+  );
   const [weightUnit, setWeightUnit] = useState('kg');
 
   const formatDisplayDate = (dStr) => {
-    if (!dStr) return '';
+    if (!dStr) return 'Select date';
     const parts = dStr.split('-');
     if (parts.length !== 3) return dStr;
     const [y, m, d] = parts.map(Number);
@@ -86,23 +103,21 @@ function AppContent() {
     });
   };
 
-  // Server Result State (View 3)
-  const [userData, setUserData] = useState({
-    id: 1,
-    name: 'Ankita',
-    milestoneDate: defaultDate,
-    milestoneType: 'Wedding',
-    goal: 'Tone & Sculpt',
-    daysRemaining: 141,
-    phase: 'FOUNDATION',
-    phaseTitle: 'Foundation Phase',
-    phaseDescription: 'Building your routine, steadily',
-    progressPercentage: 25,
-  });
+  // Server / Local Persistence State (View 3)
+  const [userData, setUserData] = useState(initialSession?.savedUser || null);
 
   // Dynamic Dashboard State for View 3
-  const [dashboard, setDashboard] = useState(null);
-  const [dailyLogsHistory, setDailyLogsHistory] = useState({});
+  const [dashboard, setDashboard] = useState(initialSession?.cachedDashboard || null);
+  const [dailyLogsHistory, setDailyLogsHistory] = useState(initialSession?.cachedLogs || {});
+
+  useEffect(() => {
+    splashFadeAnim.setValue(0);
+    Animated.timing(splashFadeAnim, {
+      toValue: 1,
+      duration: 220,
+      useNativeDriver: true,
+    }).start();
+  }, [step]);
 
   useEffect(() => {
     // Inject Google Fonts stylesheet on Web for crisp typography
@@ -116,12 +131,15 @@ function AppContent() {
         document.head.appendChild(link);
       }
     }
+
     checkBackendHealth().then((healthy) => {
       setBackendHealthy(healthy);
-      if (healthy) {
-        loadDashboardData(1);
-      }
     });
+
+    const activeUid = initialSession?.savedUser?.id;
+    if (activeUid) {
+      loadDashboardData(activeUid);
+    }
   }, []);
 
   const normalizeDashboard = (data) => {
@@ -152,15 +170,20 @@ function AppContent() {
   };
 
   const loadDashboardData = async (uid = 1) => {
+    if (!uid) return;
     try {
       const rawData = await fetchDashboard(uid);
       const data = normalizeDashboard(rawData);
       setDashboard(data);
+      await saveCachedDashboard(data);
+
       if (data.user) {
         setName(data.user.name || name);
         if (data.user.milestoneDate) setMilestoneDate(data.user.milestoneDate);
         if (data.user.milestoneType) setMilestoneType(data.user.milestoneType);
         if (data.user.goal) setGoal(data.user.goal);
+        setUserData(data.user);
+        await saveActiveUser(data.user);
       }
       if (data.todayGlow?.weightCard?.logged && data.todayGlow?.weightCard?.weightAm != null) {
         setLoggedWeight(data.todayGlow.weightCard.weightAm);
@@ -176,7 +199,11 @@ function AppContent() {
               map[item.logDate] = item;
             }
           });
-          setDailyLogsHistory(map);
+          setDailyLogsHistory((prev) => {
+            const merged = { ...prev, ...map };
+            saveAllDailyLogs(merged);
+            return merged;
+          });
         }
       } catch (logErr) {
         console.warn('History logs fetch fallback:', logErr);
@@ -187,6 +214,7 @@ function AppContent() {
   };
 
   const calculatePreviewDays = () => {
+    if (!milestoneDate) return 0;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const target = new Date(milestoneDate);
@@ -197,83 +225,92 @@ function AppContent() {
 
   const handleSubmit = async () => {
     setLoading(true);
+    const resolvedName = name.trim() || 'Glow Prepper';
+    const days = calculatePreviewDays();
+    let phase = 'FOUNDATION';
+    let phaseTitle = 'Foundation Phase';
+    let phaseDescription = 'Building your routine, steadily';
+
+    if (days < 0) {
+      phase = 'MAINTENANCE';
+      phaseTitle = 'Maintenance & Glow';
+      phaseDescription = 'Evergreen habit mode & steady progress';
+    } else if (days <= 6) {
+      phase = 'ARRIVAL';
+      phaseTitle = 'Arrival Phase';
+      phaseDescription = 'Rest prioritized & final glow prep';
+    } else if (days <= 29) {
+      phase = 'REFINE';
+      phaseTitle = 'Refine Phase';
+      phaseDescription = 'Tapering strain & protecting your energy';
+    } else if (days <= 89) {
+      phase = 'BUILD';
+      phaseTitle = 'Build Phase';
+      phaseDescription = 'Progressive overload & targeted definition';
+    }
+
+    const clientUserData = {
+      id: userData?.id || Date.now(),
+      name: resolvedName,
+      email: `${resolvedName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'user'}@clockit.app`,
+      milestoneDate,
+      milestoneType,
+      goal,
+      daysRemaining: days,
+      phase,
+      phaseTitle,
+      phaseDescription,
+      progressPercentage: Math.max(0, Math.min(100, Math.round(((180 - days) / 180) * 100))),
+      height: '163 cm',
+    };
+
+    const initialDashboard = {
+      user: clientUserData,
+      countdown: {
+        daysRemaining: days,
+        phase,
+        phaseTitle,
+        phaseDescription,
+        progressPercentage: clientUserData.progressPercentage,
+        subtitle: `${days} days to your ${milestoneType}`,
+      },
+      streak: { currentStreak: 0, streakText: '0d', activeToday: false },
+      weeklyStrip: generateClientWeeklyStrip(),
+      todayGlow: {
+        completedCount: 0,
+        totalCount: 4,
+        weightCard: { logged: false, badge: 'Log', detail: 'Tap to record' },
+        skincareCard: { amDone: false, badge: 'Log', detail: 'SPF & Vitamin C' },
+        bodyCareCard: { bodyDone: false, hairDone: false, completed: false, badge: 'Log', detail: 'Scalp Oil, Scrub & Butter' },
+        workoutCard: { completed: false, badge: 'Start', detail: 'Glutes & Core · 40m' },
+      },
+    };
+
+    // Save locally immediately so no data is ever lost
+    await saveActiveUser(clientUserData);
+    await saveCachedDashboard(initialDashboard);
+    setUserData(clientUserData);
+    setDashboard(initialDashboard);
+    setStep('countdown');
+
     try {
       const payload = {
-        name,
-        email: `${name.toLowerCase().replace(/\s+/g, '')}@clockit.app`,
+        name: resolvedName,
+        email: clientUserData.email,
         milestoneDate,
         milestoneType,
         goal,
         trackingPreferences: ['Energy & mood', 'Measurements'],
         height: '163 cm',
       };
-
-      const data = await createUser(payload);
-      setUserData(data);
-      if (data.id) {
-        await loadDashboardData(data.id);
+      const serverUser = await createUser(payload);
+      if (serverUser && serverUser.id) {
+        setUserData(serverUser);
+        await saveActiveUser(serverUser);
+        await loadDashboardData(serverUser.id);
       }
-      setStep('countdown');
     } catch (err) {
-      console.warn('Backend offline or error, calculating client preview:', err);
-      const days = calculatePreviewDays();
-      let phase = 'FOUNDATION';
-      let phaseTitle = 'Foundation Phase';
-      let phaseDescription = 'Building your routine, steadily';
-
-      if (days < 0) {
-        phase = 'MAINTENANCE';
-        phaseTitle = 'Maintenance & Glow';
-        phaseDescription = 'Evergreen habit mode & steady progress';
-      } else if (days <= 6) {
-        phase = 'ARRIVAL';
-        phaseTitle = 'Arrival Phase';
-        phaseDescription = 'Rest prioritized & final glow prep';
-      } else if (days <= 29) {
-        phase = 'REFINE';
-        phaseTitle = 'Refine Phase';
-        phaseDescription = 'Tapering strain & protecting your energy';
-      } else if (days <= 89) {
-        phase = 'BUILD';
-        phaseTitle = 'Build Phase';
-        phaseDescription = 'Progressive overload & targeted definition';
-      }
-
-      const clientUserData = {
-        id: 1,
-        name,
-        milestoneDate,
-        milestoneType,
-        goal,
-        daysRemaining: days,
-        phase,
-        phaseTitle,
-        phaseDescription,
-        progressPercentage: Math.max(0, Math.min(100, Math.round(((180 - days) / 180) * 100))),
-      };
-      setUserData(clientUserData);
-      setDashboard({
-        user: clientUserData,
-        countdown: {
-          daysRemaining: days,
-          phase,
-          phaseTitle,
-          phaseDescription,
-          progressPercentage: clientUserData.progressPercentage,
-          subtitle: `${days} days to your ${milestoneType}`,
-        },
-        streak: { currentStreak: 0, streakText: '0d', activeToday: false },
-        weeklyStrip: generateClientWeeklyStrip(),
-        todayGlow: {
-          completedCount: 0,
-          totalCount: 4,
-          weightCard: { logged: false, badge: 'Log', detail: 'Tap to record' },
-          skincareCard: { amDone: false, badge: 'Log', detail: 'SPF & Vitamin C' },
-          bodyCareCard: { bodyDone: false, hairDone: false, completed: false, badge: 'Log', detail: 'Scalp Oil, Scrub & Butter' },
-          workoutCard: { completed: false, badge: 'Start', detail: 'Glutes & Core · 40m' },
-        },
-      });
-      setStep('countdown');
+      console.warn('Backend offline or slow, local user created successfully:', err);
     } finally {
       setLoading(false);
     }
@@ -284,23 +321,28 @@ function AppContent() {
     const isWeightLogged = Boolean(updatedGlow.weightCard?.logged && (updatedGlow.weightCard?.weightAm != null || loggedWeight != null));
     const activeWeightAm = isWeightLogged ? (updatedGlow.weightCard?.weightAm ?? loggedWeight) : null;
 
-    setDailyLogsHistory((prev) => ({
-      ...prev,
-      [todayStr]: {
-        ...(prev[todayStr] || {}),
-        logDate: todayStr,
-        isDayActive: (updatedGlow.completedCount || 0) > 0,
-        dayActive: (updatedGlow.completedCount || 0) > 0,
-        weightAm: activeWeightAm,
-        skincareAmDone: Boolean(updatedGlow.skincareCard?.amDone),
-        skincarePmDone: Boolean(updatedGlow.skincareCard?.pmDone),
-        workoutCompleted: Boolean(updatedGlow.workoutCard?.completed),
-        workoutName: updatedGlow.workoutCard?.completed ? 'Glutes & Core' : null,
-        workoutDurationMinutes: updatedGlow.workoutCard?.completed ? 40 : null,
-        nutritionLogged: Boolean(updatedGlow.bodyCareCard?.completed || updatedGlow.bodyCareCard?.bodyDone),
-        completedCount: updatedGlow.completedCount || 0,
-      },
-    }));
+    const logEntry = {
+      logDate: todayStr,
+      isDayActive: (updatedGlow.completedCount || 0) > 0,
+      dayActive: (updatedGlow.completedCount || 0) > 0,
+      weightAm: activeWeightAm,
+      skincareAmDone: Boolean(updatedGlow.skincareCard?.amDone),
+      skincarePmDone: Boolean(updatedGlow.skincareCard?.pmDone),
+      workoutCompleted: Boolean(updatedGlow.workoutCard?.completed),
+      workoutName: updatedGlow.workoutCard?.completed ? 'Glutes & Core' : null,
+      workoutDurationMinutes: updatedGlow.workoutCard?.completed ? 40 : null,
+      nutritionLogged: Boolean(updatedGlow.bodyCareCard?.completed || updatedGlow.bodyCareCard?.bodyDone),
+      completedCount: updatedGlow.completedCount || 0,
+    };
+
+    setDailyLogsHistory((prev) => {
+      const updated = {
+        ...prev,
+        [todayStr]: logEntry,
+      };
+      saveDailyLog(todayStr, logEntry);
+      return updated;
+    });
   };
 
   const handleRoutineToggle = async (moduleType) => {
@@ -367,20 +409,26 @@ function AppContent() {
 
     syncTodayHistoryLog(newGlow);
 
-    setDashboard((prev) => ({
-      ...prev,
-      todayGlow: newGlow,
-      streak: {
-        currentStreak: newStreakVal,
-        streakText: `${newStreakVal}d`,
-        activeToday: isAnyActive,
-      },
-    }));
+    setDashboard((prev) => {
+      const updated = {
+        ...prev,
+        todayGlow: newGlow,
+        streak: {
+          currentStreak: newStreakVal,
+          streakText: `${newStreakVal}d`,
+          activeToday: isAnyActive,
+        },
+      };
+      saveCachedDashboard(updated);
+      return updated;
+    });
 
     try {
-      const updatedData = await updateTodayLog(userData.id || 1, updatePayload);
+      const updatedData = await updateTodayLog(userData?.id || 1, updatePayload);
       if (updatedData) {
-        setDashboard(normalizeDashboard(updatedData));
+        const normalized = normalizeDashboard(updatedData);
+        setDashboard(normalized);
+        saveCachedDashboard(normalized);
       }
     } catch (err) {
       console.warn('Backend sync failed, saved locally:', err);
@@ -421,23 +469,28 @@ function AppContent() {
 
     syncTodayHistoryLog(newGlow);
 
-    setDashboard((prev) => ({
-      ...prev,
-      todayGlow: newGlow,
-      streak: {
-        currentStreak: newStreakVal,
-        streakText: `${newStreakVal}d`,
-        activeToday: isAnyActive,
-      },
-    }));
+    setDashboard((prev) => {
+      const updated = {
+        ...prev,
+        todayGlow: newGlow,
+        streak: {
+          currentStreak: newStreakVal,
+          streakText: `${newStreakVal}d`,
+          activeToday: isAnyActive,
+        },
+      };
+      saveCachedDashboard(updated);
+      return updated;
+    });
 
     try {
-      const updatedData = await updateTodayLog(userData.id || 1, {
+      const updatedData = await updateTodayLog(userData?.id || 1, {
         weightAm: weightVal,
       });
       if (updatedData) {
         const normalized = normalizeDashboard(updatedData);
         setDashboard(normalized);
+        saveCachedDashboard(normalized);
         if (normalized.todayGlow?.weightCard?.logged && normalized.todayGlow?.weightCard?.weightAm != null) {
           setLoggedWeight(normalized.todayGlow.weightCard.weightAm);
         }
@@ -478,23 +531,29 @@ function AppContent() {
 
     syncTodayHistoryLog(newGlow);
 
-    setDashboard((prev) => ({
-      ...prev,
-      todayGlow: newGlow,
-      streak: {
-        currentStreak: newStreakVal,
-        streakText: `${newStreakVal}d`,
-        activeToday: isAnyActive,
-      },
-    }));
+    setDashboard((prev) => {
+      const updated = {
+        ...prev,
+        todayGlow: newGlow,
+        streak: {
+          currentStreak: newStreakVal,
+          streakText: `${newStreakVal}d`,
+          activeToday: isAnyActive,
+        },
+      };
+      saveCachedDashboard(updated);
+      return updated;
+    });
 
     try {
-      const updatedData = await updateTodayLog(userData.id || 1, {
+      const updatedData = await updateTodayLog(userData?.id || 1, {
         skincareAmDone: skincarePayload.amDone,
         skincarePmDone: skincarePayload.pmDone,
       });
       if (updatedData) {
-        setDashboard(normalizeDashboard(updatedData));
+        const normalized = normalizeDashboard(updatedData);
+        setDashboard(normalized);
+        saveCachedDashboard(normalized);
       }
     } catch (err) {
       console.warn('Backend skincare sync failed, saved locally:', err);
@@ -549,23 +608,29 @@ function AppContent() {
 
     syncTodayHistoryLog(newGlow);
 
-    setDashboard((prev) => ({
-      ...prev,
-      todayGlow: newGlow,
-      streak: {
-        currentStreak: newStreakVal,
-        streakText: `${newStreakVal}d`,
-        activeToday: isAnyActive,
-      },
-    }));
+    setDashboard((prev) => {
+      const updated = {
+        ...prev,
+        todayGlow: newGlow,
+        streak: {
+          currentStreak: newStreakVal,
+          streakText: `${newStreakVal}d`,
+          activeToday: isAnyActive,
+        },
+      };
+      saveCachedDashboard(updated);
+      return updated;
+    });
 
     try {
-      const updatedData = await updateTodayLog(userData.id || 1, {
+      const updatedData = await updateTodayLog(userData?.id || 1, {
         nutritionLogged: isAnyDone,
         bodyCareDone: isAnyDone,
       });
       if (updatedData) {
-        setDashboard(normalizeDashboard(updatedData));
+        const normalized = normalizeDashboard(updatedData);
+        setDashboard(normalized);
+        saveCachedDashboard(normalized);
       }
     } catch (err) {
       console.warn('Backend body care sync failed, saved locally:', err);
@@ -664,10 +729,11 @@ function AppContent() {
         workoutDurationMinutes: workoutDuration,
       };
 
-      const updatedData = await updateTodayLog(userData.id || 1, payload);
+      const updatedData = await updateTodayLog(userData?.id || 1, payload);
       if (updatedData) {
         const normalized = normalizeDashboard(updatedData);
         setDashboard(normalized);
+        saveCachedDashboard(normalized);
         if (normalized.todayGlow?.weightCard?.logged && normalized.todayGlow?.weightCard?.weightAm != null) {
           setLoggedWeight(normalized.todayGlow.weightCard.weightAm);
         }
@@ -675,6 +741,14 @@ function AppContent() {
     } catch (err) {
       console.warn('Complete/commit backend sync failed, saved locally:', err);
     }
+  };
+
+  const handleResetMilestone = async () => {
+    await clearActiveUser();
+    setUserData(null);
+    setDashboard(null);
+    setName('');
+    setStep('setup');
   };
 
   const generateClientWeeklyStrip = () => {
@@ -702,12 +776,22 @@ function AppContent() {
   };
 
   const renderScreenContent = () => {
-    const activeUserName = dashboard?.user?.name || userData?.name || name || 'Ankita';
+    const activeUserName = dashboard?.user?.name || userData?.name || name || 'Glow Prepper';
+    const activeGoal = dashboard?.user?.goal || userData?.goal || goal || 'Tone & Sculpt';
+    const getWorkoutDetail = (userGoal) => {
+      if (userGoal === 'Glow & Energy') return 'Low-Impact Cardio & Radiance · 30m';
+      if (userGoal === 'Event Ready') return 'Full-Body Circuit & Posture · 45m';
+      return 'Glutes & Core Sculpt · 40m';
+    };
+    const activeWorkoutDetail = getWorkoutDetail(activeGoal);
+
     const activeDaysRemaining = dashboard?.countdown?.daysRemaining ?? userData?.daysRemaining ?? calculatePreviewDays();
     const activePhaseTitle = dashboard?.countdown?.phaseTitle || userData?.phaseTitle || 'Foundation Phase';
     const activeProgress = dashboard?.countdown?.progressPercentage ?? userData?.progressPercentage ?? 25;
     const activeStreakText = dashboard?.streak?.streakText || '0d';
-    const activeSubtitle = `${activeDaysRemaining} days to your ${userData?.milestoneType || milestoneType}`;
+    const activeSubtitle = (userData?.milestoneType || milestoneType)
+      ? `${activeDaysRemaining} days to your ${userData?.milestoneType || milestoneType}`
+      : 'Your Personal Self-Care Countdown';
     const weeklyDays = dashboard?.weeklyStrip || generateClientWeeklyStrip();
     const todayGlow = dashboard?.todayGlow || {
       completedCount: 0,
@@ -715,7 +799,7 @@ function AppContent() {
       weightCard: { logged: false, badge: 'Log', detail: 'Tap to record' },
       skincareCard: { amDone: false, badge: 'Log', detail: 'SPF & Vitamin C' },
       bodyCareCard: { bodyDone: false, hairDone: false, completed: false, badge: 'Log', detail: 'Scalp Oil, Scrub & Butter' },
-      workoutCard: { completed: false, badge: 'Start', detail: 'Glutes & Core · 40m' },
+      workoutCard: { completed: false, badge: 'Start', detail: activeWorkoutDetail },
     };
 
     return (
@@ -735,9 +819,9 @@ function AppContent() {
         <View style={[styles.pearl, { width: 10, height: 10, bottom: 85, right: 28 }]} />
         <View style={[styles.pearl, { width: 6, height: 6, bottom: 125, right: 54 }]} />
 
-        {/* ──────── 1. SPLASH SCREEN (100% ORIGINAL & UNTOUCHED) ──────── */}
+        {/* ──────── 1. SPLASH SCREEN (ATOMIC FADE-IN BARRIER) ──────── */}
         {step === 'splash' && (
-          <View style={styles.splashContent}>
+          <Animated.View style={[styles.splashContent, { opacity: splashFadeAnim }]}>
             <View style={styles.splashCenter}>
               <BowIcon size={46} style={{ marginBottom: 14 }} />
 
@@ -772,8 +856,13 @@ function AppContent() {
               <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={async () => {
-                  await loadDashboardData(1);
-                  setStep('countdown');
+                  const saved = await getActiveUser();
+                  if (saved && saved.id) {
+                    await loadDashboardData(saved.id);
+                    setStep('countdown');
+                  } else {
+                    setStep('setup');
+                  }
                 }}
               >
                 <Text style={styles.secondaryText}>
@@ -787,7 +876,7 @@ function AppContent() {
               <View style={styles.dot} />
               <View style={styles.dot} />
             </View>
-          </View>
+          </Animated.View>
         )}
 
         {/* ──────── 2. MILESTONE SETUP SCREEN (100% ORIGINAL & UNTOUCHED) ──────── */}
@@ -866,16 +955,16 @@ function AppContent() {
                   </View>
 
                   <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.dateDisplayText}>
+                    <Text style={[styles.dateDisplayText, !milestoneDate && { color: THEME.inkSoft }]}>
                       {formatDisplayDate(milestoneDate)}
                     </Text>
                     <Text style={styles.daysPreviewText}>
-                      ~{calculatePreviewDays()} days from today
+                      {milestoneDate ? `~${calculatePreviewDays()} days from today` : 'Tap to pick your milestone date'}
                     </Text>
                   </View>
 
                   <View style={styles.pickDateBadge}>
-                    <Text style={styles.pickDateBadgeText}>Change</Text>
+                    <Text style={styles.pickDateBadgeText}>{milestoneDate ? 'Change' : 'Pick Date'}</Text>
                   </View>
                 </TouchableOpacity>
               </View>
@@ -918,25 +1007,32 @@ function AppContent() {
             </ScrollView>
 
             <View style={styles.footerAction}>
-              <TouchableOpacity
-                activeOpacity={0.88}
-                onPress={handleSubmit}
-                disabled={loading}
-                style={styles.submitButtonWrapper}
-              >
-                <LinearGradient
-                  colors={[THEME.peachDeep, THEME.pinkDeep]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.ctaButton}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text style={styles.ctaButtonText}>Create My Countdown</Text>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
+              {(() => {
+                const isFormValid = Boolean(name.trim() && milestoneType && milestoneDate && goal);
+                return (
+                  <TouchableOpacity
+                    activeOpacity={0.88}
+                    onPress={handleSubmit}
+                    disabled={loading || !isFormValid}
+                    style={[styles.submitButtonWrapper, !isFormValid && { opacity: 0.45 }]}
+                  >
+                    <LinearGradient
+                      colors={[THEME.peachDeep, THEME.pinkDeep]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.ctaButton}
+                    >
+                      {loading ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={styles.ctaButtonText}>
+                          {isFormValid ? 'Create My Countdown' : 'Fill all details to begin'}
+                        </Text>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+                );
+              })()}
             </View>
           </View>
         )}
@@ -1157,7 +1253,7 @@ function AppContent() {
                 daysRemaining={activeDaysRemaining}
                 phaseTitle={activePhaseTitle}
                 onEditMilestone={() => setShowCalendar(true)}
-                onResetMilestone={() => setStep('setup')}
+                onResetMilestone={handleResetMilestone}
               />
             )}
 
@@ -1227,7 +1323,7 @@ function AppContent() {
 }
 
 export default function App() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     PlayfairDisplay_700Bold,
     PlayfairDisplay_500Medium_Italic,
     Quicksand_500Medium,
@@ -1235,17 +1331,46 @@ export default function App() {
     Quicksand_700Bold,
   });
 
-  if (!fontsLoaded) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={THEME.pinkDeep} />
-      </View>
-    );
+  const [appIsReady, setAppIsReady] = useState(false);
+  const [initialSession, setInitialSession] = useState(null);
+
+  useEffect(() => {
+    async function prepare() {
+      try {
+        const [savedUser, cachedDashboard, cachedLogs] = await Promise.all([
+          getActiveUser(),
+          getCachedDashboard(),
+          getAllDailyLogs(),
+        ]);
+        setInitialSession({ savedUser, cachedDashboard, cachedLogs });
+      } catch (e) {
+        console.warn('Error reading initial storage:', e);
+      } finally {
+        setAppIsReady(true);
+      }
+    }
+    prepare();
+  }, []);
+
+  const onLayoutRootView = useCallback(async () => {
+    if ((fontsLoaded || fontError) && appIsReady) {
+      try {
+        await SplashScreen.hideAsync();
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [fontsLoaded, fontError, appIsReady]);
+
+  if ((!fontsLoaded && !fontError) || !appIsReady) {
+    return null;
   }
 
   return (
     <SafeAreaProvider style={{ flex: 1, width: '100%', height: '100%' }}>
-      <AppContent />
+      <View style={{ flex: 1, width: '100%', height: '100%' }} onLayout={onLayoutRootView}>
+        <AppContent initialSession={initialSession} />
+      </View>
     </SafeAreaProvider>
   );
 }

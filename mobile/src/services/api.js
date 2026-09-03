@@ -14,7 +14,7 @@ export const API_BASE =
         default: 'https://clockit-backend.onrender.com/api',
       }));
 
-async function fetchWithTimeout(url, options = {}, timeoutMs = 2500) {
+async function fetchWithTimeout(url, options = {}, timeoutMs = 25000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -32,7 +32,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 2500) {
 
 export async function checkBackendHealth() {
   try {
-    const res = await fetchWithTimeout(`${API_BASE}/health`, { method: 'GET' }, 1500);
+    const res = await fetchWithTimeout(`${API_BASE}/health`, { method: 'GET' }, 8000);
     if (!res.ok) return false;
     const data = await res.json();
     return data.status === 'UP';
@@ -48,7 +48,7 @@ export async function createUser(payload) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(payload),
-  }, 2500);
+  }, 25000);
 
   if (!res.ok) {
     throw new Error(`Server returned HTTP ${res.status}`);
@@ -58,7 +58,7 @@ export async function createUser(payload) {
 }
 
 export async function getUserById(id) {
-  const res = await fetchWithTimeout(`${API_BASE}/users/${id}`, { method: 'GET' }, 2500);
+  const res = await fetchWithTimeout(`${API_BASE}/users/${id}`, { method: 'GET' });
   if (!res.ok) {
     throw new Error(`Server returned HTTP ${res.status}`);
   }
@@ -66,7 +66,7 @@ export async function getUserById(id) {
 }
 
 export async function fetchDashboard(userId = 1) {
-  const res = await fetchWithTimeout(`${API_BASE}/v1/users/${userId}/dashboard`, { method: 'GET' }, 2500);
+  const res = await fetchWithTimeout(`${API_BASE}/v1/users/${userId}/dashboard`, { method: 'GET' });
   if (!res.ok) {
     throw new Error(`Server returned HTTP ${res.status}`);
   }
@@ -80,7 +80,7 @@ export async function updateTodayLog(userId = 1, payload) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(payload),
-  }, 2500);
+  });
 
   if (!res.ok) {
     throw new Error(`Server returned HTTP ${res.status}`);
@@ -97,7 +97,7 @@ export async function fetchUserDailyLogs(userId = 1, startDate, endDate) {
     url += `?${params.join('&')}`;
   }
 
-  const res = await fetchWithTimeout(url, { method: 'GET' }, 2500);
+  const res = await fetchWithTimeout(url, { method: 'GET' });
   if (!res.ok) {
     throw new Error(`Server returned HTTP ${res.status}`);
   }
@@ -111,7 +111,7 @@ export async function updateLogForDate(userId = 1, dateStr, payload) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(payload),
-  }, 2500);
+  });
 
   if (!res.ok) {
     throw new Error(`Server returned HTTP ${res.status}`);
