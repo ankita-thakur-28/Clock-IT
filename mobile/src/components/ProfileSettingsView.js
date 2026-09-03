@@ -13,6 +13,7 @@ import { THEME } from '../constants/theme';
 
 export default function ProfileSettingsView({
   name = 'Glow Prepper',
+  email = '',
   milestoneType = 'Milestone',
   milestoneDate,
   goal = 'Tone & Sculpt',
@@ -20,6 +21,7 @@ export default function ProfileSettingsView({
   phaseTitle = 'Foundation Phase',
   onEditMilestone,
   onResetMilestone,
+  onSignOut,
 }) {
   const [weightUnit, setWeightUnit] = useState('kg');
   const [activePreferences, setActivePreferences] = useState({
@@ -53,6 +55,23 @@ export default function ProfileSettingsView({
     }
   };
 
+  const handleSignOutPress = () => {
+    if (Platform.OS === 'web') {
+      if (window.confirm('Are you sure you want to sign out?')) {
+        onSignOut && onSignOut();
+      }
+    } else {
+      Alert.alert(
+        'Sign Out',
+        'Are you sure you want to sign out of your account?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Sign Out', style: 'destructive', onPress: onSignOut },
+        ]
+      );
+    }
+  };
+
   return (
     <ScrollView
       style={styles.container}
@@ -80,6 +99,7 @@ export default function ProfileSettingsView({
 
         <View style={styles.profileInfo}>
           <Text style={styles.profileName}>{name}</Text>
+          {Boolean(email) && <Text style={styles.profileEmail}>{email}</Text>}
           <Text style={styles.profileSubtext}>Countdown to your {milestoneType}</Text>
           <View style={styles.phaseBadge}>
             <Text style={styles.phaseBadgeText}>✦ {phaseTitle}</Text>
@@ -114,12 +134,16 @@ export default function ProfileSettingsView({
         </View>
       </View>
 
-      {/* Preferences & Units Card */}
+      {/* Goal & Preferences Card */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Tracking Preferences</Text>
-        <Text style={styles.cardSubtext}>Customize the routines shown on your dashboard</Text>
+        <Text style={styles.cardTitle}>Focus & Routine</Text>
+        <View style={styles.goalBox}>
+          <Text style={styles.goalLabel}>Primary Focus</Text>
+          <Text style={styles.goalValue}>{goal}</Text>
+        </View>
 
-        <View style={styles.preferenceList}>
+        <Text style={[styles.cardTitle, { marginTop: 14, marginBottom: 8 }]}>Daily Habit Modules</Text>
+        <View style={styles.preferencesList}>
           {/* Weight */}
           <TouchableOpacity
             style={styles.preferenceRow}
@@ -128,7 +152,7 @@ export default function ProfileSettingsView({
           >
             <View style={styles.preferenceLeft}>
               <Text style={styles.preferenceEmoji}>⚖️</Text>
-              <Text style={styles.preferenceName}>Weight Tracker</Text>
+              <Text style={styles.preferenceName}>AM Weight Tracking</Text>
             </View>
             <View style={[styles.checkboxBox, activePreferences.weight && styles.checkboxBoxActive]}>
               {activePreferences.weight && <Text style={styles.checkmarkText}>✓</Text>}
@@ -142,8 +166,8 @@ export default function ProfileSettingsView({
             activeOpacity={0.8}
           >
             <View style={styles.preferenceLeft}>
-              <Text style={styles.preferenceEmoji}>🧖‍♀️</Text>
-              <Text style={styles.preferenceName}>Skincare Rituals (AM/PM)</Text>
+              <Text style={styles.preferenceEmoji}>✨</Text>
+              <Text style={styles.preferenceName}>AM & PM Skincare Regimen</Text>
             </View>
             <View style={[styles.checkboxBox, activePreferences.skincare && styles.checkboxBoxActive]}>
               {activePreferences.skincare && <Text style={styles.checkmarkText}>✓</Text>}
@@ -219,6 +243,21 @@ export default function ProfileSettingsView({
           activeOpacity={0.8}
         >
           <Text style={styles.resetBtnText}>Set Another Milestone</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Account & Sign Out */}
+      <View style={[styles.card, styles.accountCard]}>
+        <Text style={styles.cardTitle}>Account & Session</Text>
+        <Text style={styles.accountSubtext}>
+          Logged in as {email || name || 'Clock-IT Member'}
+        </Text>
+        <TouchableOpacity
+          onPress={handleSignOutPress}
+          style={styles.signOutBtn}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.signOutBtnText}>Sign Out</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -497,5 +536,36 @@ const styles = StyleSheet.create({
     fontFamily: THEME.fonts.bodyBold,
     fontSize: 12.5,
     color: '#EF7391',
+  },
+  profileEmail: {
+    fontFamily: THEME.fonts.bodyRegular,
+    fontSize: 12,
+    color: THEME.roseGold,
+    marginBottom: 2,
+  },
+  accountCard: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#F1DECF',
+  },
+  accountSubtext: {
+    fontFamily: THEME.fonts.bodyRegular,
+    fontSize: 12,
+    color: THEME.inkSoft,
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  signOutBtn: {
+    backgroundColor: '#FFF4EE',
+    borderWidth: 1.2,
+    borderColor: '#E6C2AD',
+    paddingVertical: 11,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  signOutBtnText: {
+    fontFamily: THEME.fonts.bodyBold,
+    fontSize: 13,
+    color: '#D98853',
   },
 });

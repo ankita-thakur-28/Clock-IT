@@ -1,10 +1,49 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEYS = {
+  AUTH_TOKEN: '@clockit:auth_token',
   ACTIVE_USER: '@clockit:active_user',
   DASHBOARD_CACHE: '@clockit:dashboard_cache',
   DAILY_LOGS_MAP: '@clockit:daily_logs_map',
 };
+
+/**
+ * Persist the JWT auth token locally
+ */
+export async function saveAuthToken(token) {
+  try {
+    if (!token) {
+      await AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      return;
+    }
+    await AsyncStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+  } catch (error) {
+    console.error('Failed to save auth token to AsyncStorage:', error);
+  }
+}
+
+/**
+ * Retrieve the JWT auth token from local storage
+ */
+export async function getAuthToken() {
+  try {
+    return await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+  } catch (error) {
+    console.error('Failed to read auth token from AsyncStorage:', error);
+    return null;
+  }
+}
+
+/**
+ * Remove the JWT auth token from local storage
+ */
+export async function clearAuthToken() {
+  try {
+    await AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+  } catch (error) {
+    console.error('Failed to clear auth token from AsyncStorage:', error);
+  }
+}
 
 /**
  * Persist the current user profile locally
@@ -35,10 +74,11 @@ export async function getActiveUser() {
 }
 
 /**
- * Remove the current user profile (logout / reset)
+ * Remove the current user profile and session (logout / reset)
  */
 export async function clearActiveUser() {
   try {
+    await AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
     await AsyncStorage.removeItem(STORAGE_KEYS.ACTIVE_USER);
     await AsyncStorage.removeItem(STORAGE_KEYS.DASHBOARD_CACHE);
   } catch (error) {

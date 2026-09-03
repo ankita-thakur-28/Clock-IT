@@ -43,6 +43,9 @@ import CalendarHistoryView from './src/components/CalendarHistoryView';
 import ProfileSettingsView from './src/components/ProfileSettingsView';
 import {
   createUser,
+  registerUser,
+  loginUser,
+  updateUserMilestone,
   fetchDashboard,
   updateTodayLog,
   fetchUserDailyLogs,
@@ -50,6 +53,9 @@ import {
   checkBackendHealth,
 } from './src/services/api';
 import {
+  saveAuthToken,
+  getAuthToken,
+  clearAuthToken,
   saveActiveUser,
   getActiveUser,
   clearActiveUser,
@@ -74,6 +80,13 @@ function AppContent({ initialSession }) {
   const [backendHealthy, setBackendHealthy] = useState(false);
   const [activeTab, setActiveTab] = useState('today');
   const splashFadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Auth State
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authName, setAuthName] = useState('');
+  const [authError, setAuthError] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Form State (Views 1 & 2) — completely unselected initial state
   const [name, setName] = useState(initialSession?.savedUser?.name || '');
@@ -223,6 +236,114 @@ function AppContent({ initialSession }) {
     return diff >= 0 ? diff : 0;
   };
 
+  const handleSignUp = async () => {
+    setAuthError(null);
+    if (!authName.trim()) {
+      setAuthError('Please enter your name');
+      return;
+    }
+    if (!authEmail.trim() || !authEmail.includes('@')) {
+      setAuthError('Please enter a valid email address');
+      return;
+    }
+    if (!authPassword || authPassword.length < 6) {
+      setAuthError('Password must be at least 6 characters');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await registerUser({
+        name: authName.trim(),
+        email: authEmail.trim(),
+        password: authPassword,
+      });
+
+      if (data && data.token) {
+        await saveAuthToken(data.token);
+      }
+      if (data && data.user) {
+        await saveActiveUser(data.user);
+        setUserData(data.user);
+        setName(data.user.name);
+      }
+      setStep('setup');
+    } catch (err) {
+      console.warn('Sign up error, falling back to local session:', err);
+      const fallbackUser = {
+        id: Date.now(),
+        name: authName.trim(),
+        email: authEmail.trim().toLowerCase(),
+      };
+      await saveActiveUser(fallbackUser);
+      setUserData(fallbackUser);
+      setName(fallbackUser.name);
+      setStep('setup');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogIn = async () => {
+    setAuthError(null);
+    if (!authEmail.trim() || !authEmail.includes('@')) {
+      setAuthError('Please enter a valid email address');
+      return;
+    }
+    if (!authPassword) {
+      setAuthError('Please enter your password');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await loginUser({
+        email: authEmail.trim(),
+        password: authPassword,
+      });
+
+      if (data && data.token) {
+        await saveAuthToken(data.token);
+      }
+      if (data && data.user) {
+        await saveActiveUser(data.user);
+        setUserData(data.user);
+        setName(data.user.name || 'Glow Prepper');
+        if (data.user.milestoneDate) setMilestoneDate(data.user.milestoneDate);
+        if (data.user.milestoneType) setMilestoneType(data.user.milestoneType);
+        if (data.user.goal) setGoal(data.user.goal);
+      }
+
+      if (data && (data.hasMilestone || data.user?.milestoneDate)) {
+        await loadDashboardData(data.user.id);
+        setStep('countdown');
+      } else {
+        setStep('setup');
+      }
+    } catch (err) {
+      console.warn('Log in error:', err);
+      setAuthError(err.message || 'Invalid email or password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await clearAuthToken();
+    await clearActiveUser();
+    setUserData(null);
+    setDashboard(null);
+    setName('');
+    setAuthEmail('');
+    setAuthPassword('');
+    setAuthName('');
+    setAuthError(null);
+    setMilestoneDate(null);
+    setMilestoneType(null);
+    setGoal(null);
+    setStep('splash');
+  };
+
   const handleSubmit = async () => {
     setLoading(true);
     const resolvedName = name.trim() || 'Glow Prepper';
@@ -252,7 +373,7 @@ function AppContent({ initialSession }) {
     const clientUserData = {
       id: userData?.id || Date.now(),
       name: resolvedName,
-      email: `${resolvedName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'user'}@clockit.app`,
+      email: userData?.email || `${resolvedName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'user'}@clockit.app`,
       milestoneDate,
       milestoneType,
       goal,
@@ -294,20 +415,39 @@ function AppContent({ initialSession }) {
     setStep('countdown');
 
     try {
-      const payload = {
-        name: resolvedName,
-        email: clientUserData.email,
-        milestoneDate,
-        milestoneType,
-        goal,
-        trackingPreferences: ['Energy & mood', 'Measurements'],
-        height: '163 cm',
-      };
-      const serverUser = await createUser(payload);
-      if (serverUser && serverUser.id) {
-        setUserData(serverUser);
-        await saveActiveUser(serverUser);
-        await loadDashboardData(serverUser.id);
+      if (userData?.id) {
+        try {
+          const updatedUser = await updateUserMilestone(userData.id, {
+            milestoneDate,
+            milestoneType,
+            goal,
+            trackingPreferences: ['Energy & mood', 'Measurements'],
+            height: '163 cm',
+          });
+          if (updatedUser) {
+            setUserData(updatedUser);
+            await saveActiveUser(updatedUser);
+            await loadDashboardData(updatedUser.id);
+          }
+        } catch (updateErr) {
+          console.warn('Milestone update backend fallback:', updateErr);
+        }
+      } else {
+        const payload = {
+          name: resolvedName,
+          email: clientUserData.email,
+          milestoneDate,
+          milestoneType,
+          goal,
+          trackingPreferences: ['Energy & mood', 'Measurements'],
+          height: '163 cm',
+        };
+        const serverUser = await createUser(payload);
+        if (serverUser && serverUser.id) {
+          setUserData(serverUser);
+          await saveActiveUser(serverUser);
+          await loadDashboardData(serverUser.id);
+        }
       }
     } catch (err) {
       console.warn('Backend offline or slow, local user created successfully:', err);
@@ -840,7 +980,10 @@ function AppContent({ initialSession }) {
 
               <TouchableOpacity
                 activeOpacity={0.88}
-                onPress={() => setStep('setup')}
+                onPress={() => {
+                  setAuthError(null);
+                  setStep('signup');
+                }}
                 style={styles.ctaButtonWrapper}
               >
                 <LinearGradient
@@ -855,14 +998,9 @@ function AppContent({ initialSession }) {
 
               <TouchableOpacity
                 activeOpacity={0.7}
-                onPress={async () => {
-                  const saved = await getActiveUser();
-                  if (saved && saved.id) {
-                    await loadDashboardData(saved.id);
-                    setStep('countdown');
-                  } else {
-                    setStep('setup');
-                  }
+                onPress={() => {
+                  setAuthError(null);
+                  setStep('login');
                 }}
               >
                 <Text style={styles.secondaryText}>
@@ -877,6 +1015,266 @@ function AppContent({ initialSession }) {
               <View style={styles.dot} />
             </View>
           </Animated.View>
+        )}
+
+        {/* ──────── 1B. SIGN UP SCREEN (AUTH FIRST) ──────── */}
+        {step === 'signup' && (
+          <View style={styles.innerContainer}>
+            <View style={styles.navHeader}>
+              <TouchableOpacity
+                onPress={() => {
+                  setAuthError(null);
+                  setStep('splash');
+                }}
+                style={styles.backButton}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.backButtonText}>‹</Text>
+              </TouchableOpacity>
+              <Text style={styles.navTitle}>Create Account</Text>
+              <Text style={styles.navStep}>Step 1 of 2</Text>
+            </View>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.authScrollContent}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.authHeaderCenter}>
+                <BowIcon size={38} style={{ marginBottom: 8 }} />
+                <Text style={styles.authHeadline}>Join Clock-IT</Text>
+                <Text style={styles.authSubheadline}>
+                  Create your private profile to begin crafting your luxury countdown.
+                </Text>
+              </View>
+
+              {Boolean(authError) && (
+                <View style={styles.authErrorBox}>
+                  <Text style={styles.authErrorText}>{authError}</Text>
+                </View>
+              )}
+
+              <View style={styles.authCard}>
+                <View style={styles.authFormGroup}>
+                  <Text style={styles.authFieldLabel}>YOUR NAME</Text>
+                  <TextInput
+                    style={styles.authInput}
+                    placeholder="e.g. Charlotte"
+                    placeholderTextColor={THEME.inkLight}
+                    value={authName}
+                    onChangeText={(val) => {
+                      setAuthName(val);
+                      if (authError) setAuthError(null);
+                    }}
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                  />
+                </View>
+
+                <View style={styles.authFormGroup}>
+                  <Text style={styles.authFieldLabel}>EMAIL ADDRESS</Text>
+                  <TextInput
+                    style={styles.authInput}
+                    placeholder="name@example.com"
+                    placeholderTextColor={THEME.inkLight}
+                    value={authEmail}
+                    onChangeText={(val) => {
+                      setAuthEmail(val);
+                      if (authError) setAuthError(null);
+                    }}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </View>
+
+                <View style={styles.authFormGroup}>
+                  <Text style={styles.authFieldLabel}>PASSWORD</Text>
+                  <View style={styles.passwordInputWrapper}>
+                    <TextInput
+                      style={styles.passwordInput}
+                      placeholder="Min. 6 characters"
+                      placeholderTextColor={THEME.inkLight}
+                      value={authPassword}
+                      onChangeText={(val) => {
+                        setAuthPassword(val);
+                        if (authError) setAuthError(null);
+                      }}
+                      secureTextEntry={!showPassword}
+                      autoCapitalize="none"
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowPassword(!showPassword)}
+                      style={styles.passwordToggle}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.passwordToggleText}>
+                        {showPassword ? 'Hide' : 'Show'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  activeOpacity={0.88}
+                  onPress={handleSignUp}
+                  disabled={loading}
+                  style={[
+                    styles.authSubmitBtnWrapper,
+                    (!authName.trim() || !authEmail.trim() || authPassword.length < 6) && { opacity: 0.5 },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={[THEME.peachDeep, THEME.pinkDeep]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.authSubmitBtn}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color="#FFFFFF" size="small" />
+                    ) : (
+                      <Text style={styles.authSubmitBtnText}>Continue to Milestone Setup</Text>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  setAuthError(null);
+                  setStep('login');
+                }}
+                style={styles.authSwitchBtn}
+              >
+                <Text style={styles.authSwitchText}>
+                  Already have an account? <Text style={styles.authSwitchHighlight}>Log in</Text>
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        )}
+
+        {/* ──────── 1C. LOG IN SCREEN ──────── */}
+        {step === 'login' && (
+          <View style={styles.innerContainer}>
+            <View style={styles.navHeader}>
+              <TouchableOpacity
+                onPress={() => {
+                  setAuthError(null);
+                  setStep('splash');
+                }}
+                style={styles.backButton}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.backButtonText}>‹</Text>
+              </TouchableOpacity>
+              <Text style={styles.navTitle}>Welcome Back</Text>
+              <View style={{ width: 40 }} />
+            </View>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.authScrollContent}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.authHeaderCenter}>
+                <HeroClock size={68} />
+                <Text style={styles.authHeadline}>Sign In to Clock-IT</Text>
+                <Text style={styles.authSubheadline}>
+                  Resume your defining countdown and daily rituals.
+                </Text>
+              </View>
+
+              {Boolean(authError) && (
+                <View style={styles.authErrorBox}>
+                  <Text style={styles.authErrorText}>{authError}</Text>
+                </View>
+              )}
+
+              <View style={styles.authCard}>
+                <View style={styles.authFormGroup}>
+                  <Text style={styles.authFieldLabel}>EMAIL ADDRESS</Text>
+                  <TextInput
+                    style={styles.authInput}
+                    placeholder="name@example.com"
+                    placeholderTextColor={THEME.inkLight}
+                    value={authEmail}
+                    onChangeText={(val) => {
+                      setAuthEmail(val);
+                      if (authError) setAuthError(null);
+                    }}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </View>
+
+                <View style={styles.authFormGroup}>
+                  <Text style={styles.authFieldLabel}>PASSWORD</Text>
+                  <View style={styles.passwordInputWrapper}>
+                    <TextInput
+                      style={styles.passwordInput}
+                      placeholder="Enter your password"
+                      placeholderTextColor={THEME.inkLight}
+                      value={authPassword}
+                      onChangeText={(val) => {
+                        setAuthPassword(val);
+                        if (authError) setAuthError(null);
+                      }}
+                      secureTextEntry={!showPassword}
+                      autoCapitalize="none"
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowPassword(!showPassword)}
+                      style={styles.passwordToggle}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.passwordToggleText}>
+                        {showPassword ? 'Hide' : 'Show'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  activeOpacity={0.88}
+                  onPress={handleLogIn}
+                  disabled={loading}
+                  style={[
+                    styles.authSubmitBtnWrapper,
+                    (!authEmail.trim() || !authPassword) && { opacity: 0.5 },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={[THEME.peachDeep, THEME.pinkDeep]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.authSubmitBtn}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color="#FFFFFF" size="small" />
+                    ) : (
+                      <Text style={styles.authSubmitBtnText}>Log In & Continue</Text>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  setAuthError(null);
+                  setStep('signup');
+                }}
+                style={styles.authSwitchBtn}
+              >
+                <Text style={styles.authSwitchText}>
+                  New to Clock-IT? <Text style={styles.authSwitchHighlight}>Create an account</Text>
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
         )}
 
         {/* ──────── 2. MILESTONE SETUP SCREEN (100% ORIGINAL & UNTOUCHED) ──────── */}
@@ -1247,6 +1645,7 @@ function AppContent({ initialSession }) {
             {activeTab === 'profile' && (
               <ProfileSettingsView
                 name={activeUserName}
+                email={dashboard?.user?.email || userData?.email || authEmail}
                 milestoneType={dashboard?.user?.milestoneType || userData?.milestoneType || milestoneType}
                 milestoneDate={formatDisplayDate(dashboard?.user?.milestoneDate || userData?.milestoneDate || milestoneDate)}
                 goal={dashboard?.user?.goal || userData?.goal || goal}
@@ -1254,6 +1653,7 @@ function AppContent({ initialSession }) {
                 phaseTitle={activePhaseTitle}
                 onEditMilestone={() => setShowCalendar(true)}
                 onResetMilestone={handleResetMilestone}
+                onSignOut={handleSignOut}
               />
             )}
 
@@ -2064,5 +2464,140 @@ const styles = StyleSheet.create({
   },
   splitCtaTextDone: {
     color: '#D98853',
+  },
+  authScrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 40,
+  },
+  authHeaderCenter: {
+    alignItems: 'center',
+    marginBottom: 20,
+    marginTop: 6,
+  },
+  authHeadline: {
+    fontFamily: THEME.fonts.displayBold,
+    fontSize: 26,
+    color: THEME.ink,
+    marginTop: 6,
+    letterSpacing: 0.3,
+  },
+  authSubheadline: {
+    fontFamily: THEME.fonts.bodyRegular,
+    fontSize: 13,
+    color: THEME.inkSoft,
+    textAlign: 'center',
+    marginTop: 6,
+    lineHeight: 19,
+    paddingHorizontal: 16,
+  },
+  authErrorBox: {
+    backgroundColor: '#FFF0F3',
+    borderWidth: 1,
+    borderColor: '#FFCCD6',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+  },
+  authErrorText: {
+    fontFamily: THEME.fonts.bodySemiBold,
+    fontSize: 12.5,
+    color: '#E03B64',
+    textAlign: 'center',
+  },
+  authCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: 20,
+    borderWidth: 1.2,
+    borderColor: '#F3E5DA',
+    shadowColor: '#4A2C33',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  authFormGroup: {
+    marginBottom: 16,
+  },
+  authFieldLabel: {
+    fontFamily: THEME.fonts.bodyBold,
+    fontSize: 10.5,
+    letterSpacing: 1.2,
+    color: THEME.roseGold,
+    marginBottom: 6,
+  },
+  authInput: {
+    backgroundColor: '#FFFBF8',
+    borderWidth: 1.2,
+    borderColor: '#F0DFD3',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontFamily: THEME.fonts.bodyMedium,
+    fontSize: 14,
+    color: THEME.ink,
+  },
+  passwordInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFBF8',
+    borderWidth: 1.2,
+    borderColor: '#F0DFD3',
+    borderRadius: 12,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontFamily: THEME.fonts.bodyMedium,
+    fontSize: 14,
+    color: THEME.ink,
+  },
+  passwordToggle: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  passwordToggleText: {
+    fontFamily: THEME.fonts.bodySemiBold,
+    fontSize: 12,
+    color: THEME.roseGold,
+  },
+  authSubmitBtnWrapper: {
+    borderRadius: 100,
+    shadowColor: '#F195AC',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 3,
+    marginTop: 8,
+  },
+  authSubmitBtn: {
+    paddingVertical: 14,
+    borderRadius: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  authSubmitBtnText: {
+    fontFamily: THEME.fonts.bodyBold,
+    fontSize: 14,
+    color: '#FFFFFF',
+    letterSpacing: 0.4,
+  },
+  authSwitchBtn: {
+    alignItems: 'center',
+    marginTop: 22,
+    paddingVertical: 8,
+  },
+  authSwitchText: {
+    fontFamily: THEME.fonts.bodyRegular,
+    fontSize: 13,
+    color: THEME.inkSoft,
+  },
+  authSwitchHighlight: {
+    fontFamily: THEME.fonts.bodyBold,
+    color: THEME.roseGold,
+    textDecorationLine: 'underline',
   },
 });

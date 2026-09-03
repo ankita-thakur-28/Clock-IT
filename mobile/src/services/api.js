@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { getAuthToken } from './storage';
 
 // Local Mac Wi-Fi IP for physical devices, 10.0.2.2 for Android Emulator, localhost for iOS/Web
 const LOCAL_MAC_IP = '192.168.0.2';
@@ -18,8 +19,14 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 25000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
+    const token = await getAuthToken();
+    const headers = {
+      ...(options.headers || {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
     const response = await fetch(url, {
       ...options,
+      headers,
       signal: controller.signal,
     });
     clearTimeout(id);
@@ -117,5 +124,58 @@ export async function updateLogForDate(userId = 1, dateStr, payload) {
     throw new Error(`Server returned HTTP ${res.status}`);
   }
   return await res.json();
+}
+
+export async function registerUser({ name, email, password }) {
+  const res = await fetchWithTimeout(`${API_BASE}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email, password }),
+  }, 25000);
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || `Registration failed with status ${res.status}`);
+  }
+  return data;
+}
+
+export async function loginUser({ email, password }) {
+  const res = await fetchWithTimeout(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  }, 25000);
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Invalid email or password');
+  }
+  return data;
+}
+
+export async function getAuthProfile() {
+  const res = await fetchWithTimeout(`${API_BASE}/auth/me`, {
+    method: 'GET',
+  }, 15000);
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch profile: HTTP ${res.status}`);
+  }
+  return await res.json();
+}
+
+export async function updateUserMilestone(userId, payload) {
+  const res = await fetchWithTimeout(`${API_BASE}/v1/users/${userId}/milestone`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }, 25000);
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || `Failed to update milestone (HTTP ${res.status})`);
+  }
+  return data;
 }
 

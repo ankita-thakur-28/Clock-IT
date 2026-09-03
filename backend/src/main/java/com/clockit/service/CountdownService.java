@@ -23,6 +23,9 @@ public class CountdownService {
     }
 
     public long calculateDaysRemaining(LocalDate milestoneDate) {
+        if (milestoneDate == null) {
+            return 0;
+        }
         LocalDate today = LocalDate.now(clock);
         return ChronoUnit.DAYS.between(today, milestoneDate);
     }
@@ -32,6 +35,9 @@ public class CountdownService {
     }
 
     public int calculateProgressPercentage(User user, long daysRemaining) {
+        if (user == null || user.getMilestoneDate() == null) {
+            return 0;
+        }
         LocalDate today = LocalDate.now(clock);
         LocalDate startDate = (user.getCreatedAt() != null) ? user.getCreatedAt().toLocalDate() : today;
         LocalDate milestoneDate = user.getMilestoneDate();

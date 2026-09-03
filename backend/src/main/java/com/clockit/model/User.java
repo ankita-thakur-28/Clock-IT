@@ -17,16 +17,19 @@ public class User {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = true)
+    @Column(unique = true)
     private String email;
 
-    @Column(name = "milestone_date", nullable = false)
+    @Column(name = "password_hash", nullable = true)
+    private String passwordHash;
+
+    @Column(name = "milestone_date", nullable = true)
     private LocalDate milestoneDate;
 
-    @Column(name = "milestone_type", nullable = false)
+    @Column(name = "milestone_type", nullable = true)
     private String milestoneType;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String goal;
 
     @ElementCollection(fetch = FetchType.EAGER)
@@ -109,6 +112,14 @@ public class User {
 
     public void setHeight(String height) {
         this.height = height;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 
     public LocalDateTime getCreatedAt() {
