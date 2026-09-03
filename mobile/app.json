@@ -5,9 +5,6 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "splash": {
-      "backgroundColor": "#FFFDFB"
-    },
     "ios": {
       "supportsTablet": true
     },
@@ -24,7 +21,14 @@
     "plugins": [
       "expo-asset",
       "expo-font",
-      "expo-splash-screen"
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FFFDFB",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180
+        }
+      ]
     ],
     "extra": {
       "eas": {
