@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Clock-IT — Auth Screens · Text-Light Redesign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream1:#fdf4ed; --cream2:#fbeae4; --blush:#f8ddcb; --pink:#f8d8dc;
+    --ink:#3b2a26; --ink-soft:#7a6a63; --tan:#c99a6b; --link:#c08a7e;
+    --border:#eed7c4; --grad:linear-gradient(90deg,#f3c9a6,#eeb0bf);
+    --page:#f3efe9;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--page);font-family:'Quicksand',sans-serif;color:var(--ink);min-height:100vh;padding:36px 24px 60px}
+
+  /* ── page chrome ─────────────────────────── */
+  header{text-align:center;margin-bottom:26px}
+  header h1{font-family:'Playfair Display',serif;font-size:26px}
+  header p{color:var(--ink-soft);font-size:14.5px;margin-top:6px}
+  .toggle{display:inline-flex;margin-top:18px;background:#fff;border:1px solid #e7ddd2;border-radius:999px;padding:4px;box-shadow:0 4px 14px rgba(90,60,40,.06)}
+  .toggle button{border:0;background:transparent;font-family:inherit;font-weight:600;font-size:14px;padding:9px 26px;border-radius:999px;cursor:pointer;color:var(--ink-soft)}
+  .toggle button.on{background:var(--ink);color:#fff}
+  .stage{display:flex;gap:56px;justify-content:center;flex-wrap:wrap}
+  .wrap{display:flex;flex-direction:column;align-items:center}
+  .badge{font-size:13px;font-weight:700;color:var(--tan);background:#fff;border:1px solid #ead9c6;border-radius:999px;padding:6px 16px;margin-bottom:14px;box-shadow:0 3px 10px rgba(90,60,40,.05)}
+  .badge b{color:#c05f7a}
+  .chips{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;justify-content:center}
+  .chips span{font-size:12.5px;color:var(--ink-soft);background:#fff;border:1px solid #e7ddd2;border-radius:999px;padding:5px 12px}
+
+  /* ── phone ───────────────────────────────── */
+  .phone{position:relative;width:352px;height:730px;background:#fff;border-radius:48px;border:1px solid #f0e2d2;box-shadow:0 30px 60px -18px rgba(120,80,60,.22), 0 0 0 8px #fff, 0 0 0 9px #f0e2d2;overflow:hidden}
+  .screen{position:absolute;inset:0;padding:26px 24px 22px;display:flex;flex-direction:column;
+    background:linear-gradient(160deg,var(--cream1) 0%,var(--cream2) 100%);transition:opacity .3s}
+  body.show-before .after{opacity:0;pointer-events:none}
+  body:not(.show-before) .before{opacity:0;pointer-events:none}
+
+  /* decorative blobs */
+  .blob-tl{position:absolute;top:-70px;left:-60px;width:210px;height:210px;background:var(--blush);border-radius:50%;opacity:.75}
+  .blob-br{position:absolute;bottom:-90px;right:-70px;width:260px;height:260px;background:var(--pink);border-radius:50%;opacity:.8;filter:blur(2px)}
+  .dot{position:absolute;border-radius:50%;background:#fff;border:1px solid #eecfba;width:12px;height:12px}
+
+  /* ── screen pieces ───────────────────────── */
+  .topbar{position:relative;display:flex;align-items:center;justify-content:center;height:52px;margin-bottom:4px}
+  .back{position:absolute;left:0;top:6px;width:46px;height:46px;border-radius:50%;background:#fff;border:0;box-shadow:0 6px 16px rgba(150,90,60,.14);cursor:pointer;font-size:18px;color:var(--ink);display:flex;align-items:center;justify-content:center}
+  .topTitle{font-family:'Playfair Display',serif;font-weight:700;font-size:21px}
+  .steps{position:absolute;right:2px;top:16px;display:flex;gap:7px}
+  .steps i{width:9px;height:9px;border-radius:50%;background:#e6c9b4}
+  .steps i.on{background:#cf8f9c;width:22px;border-radius:99px}
+  .stepTxt{position:absolute;right:2px;top:16px;font-size:13.5px;color:var(--ink-soft)}
+
+  .icon{font-size:56px;text-align:center;margin:8px 0 2px;filter:drop-shadow(0 8px 14px rgba(190,120,110,.25))}
+  h1.big{font-family:'Playfair Display',serif;font-size:33px;font-weight:800;text-align:center;margin-bottom:6px}
+  .sub{font-size:15.5px;line-height:1.55;color:var(--ink-soft);text-align:center;margin-bottom:4px;padding:0 12px}
+
+  .card{position:relative;background:#fff;border-radius:26px;padding:26px 22px 24px;box-shadow:0 18px 40px -14px rgba(170,110,90,.20);margin-top:22px}
+  .field{position:relative;margin-bottom:18px}
+  .field input{width:100%;height:58px;border:1.5px solid var(--border);border-radius:16px;background:#fff;
+    font-family:inherit;font-size:16px;font-weight:500;color:var(--ink);padding:20px 16px 6px;outline:none;transition:border-color .2s}
+  .field.has-show input{padding-right:64px}
+  .field input:focus{border-color:#e3b7a4}
+  .field label{position:absolute;left:17px;top:50%;transform:translateY(-50%);font-size:15px;color:#b9a795;pointer-events:none;transition:all .18s ease}
+  .field input:focus + label,
+  .field input:not(:placeholder-shown) + label{top:14px;font-size:10.5px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--tan)}
+  .show{position:absolute;right:14px;top:50%;transform:translateY(-50%);border:0;background:none;font-family:inherit;font-weight:600;font-size:14px;color:var(--tan);cursor:pointer}
+  .hint{font-size:12px;color:var(--ink-soft);margin:-12px 4px 14px;max-height:0;opacity:0;transition:opacity .25s, max-height .25s;overflow:hidden}
+  .field input:focus ~ .hint{max-height:20px;opacity:1}
+  .field + .hint-gap{height:2px}
+
+  .cta{width:100%;border:0;border-radius:999px;padding:17px;background:var(--grad);color:#fff;
+    font-family:inherit;font-size:17px;font-weight:700;letter-spacing:.3px;cursor:pointer;
+    box-shadow:0 12px 26px -6px rgba(238,166,178,.55);transition:transform .15s, box-shadow .15s;margin-top:4px}
+  .cta:active{transform:scale(.97)}
+  .foot{margin-top:auto;text-align:center;font-size:15px;color:var(--ink-soft);position:relative}
+  .foot a{color:var(--link);font-weight:700;text-underline-offset:3px}
+</style>
+</head>
+<body class="show-before">
+
+<header>
+  <h1>Clock-IT · Sign In &amp; Create Account</h1>
+  <p>Same luxury look — every unnecessary word removed for a commercial-grade feel.</p>
+  <div class="toggle">
+    <button id="bBtn" onclick="setMode(true)">Before</button>
+    <button id="aBtn" onclick="setMode(false)">After</button>
+  </div>
+</header>
+
+<div class="stage">
+
+  <!-- ════ SCREEN 1 · SIGN IN ════ -->
+  <div class="wrap">
+    <div class="badge">Sign In &nbsp;·&nbsp; 30 → <b>11 words</b></div>
+    <div class="phone">
+
+      <!-- BEFORE -->
+      <div class="screen before">
+        <div class="blob-tl"></div><div class="blob-br"></div>
+        <div class="dot" style="top:62%;right:26px"></div>
+        <div class="topbar">
+          <button class="back">‹</button>
+          <div class="topTitle">Welcome Back</div>
+        </div>
+        <div class="icon">⏰</div>
+        <h1 class="big">Sign In to Clock-IT</h1>
+        <p class="sub">Resume your defining countdown and<br>daily rituals.</p>
+        <div class="card">
+          <div class="field" style="margin-bottom:14px">
+            <div style="font-size:12px;font-weight:700;letter-spacing:2px;color:var(--tan);margin:0 0 8px 4px">EMAIL ADDRESS</div>
+            <input type="email" placeholder="name@example.com" style="padding-top:6px">
+          </div>
+          <div class="field has-show" style="margin-bottom:22px">
+            <div style="font-size:12px;font-weight:700;letter-spacing:2px;color:var(--tan);margin:0 0 8px 4px">PASSWORD</div>
+            <input type="password" placeholder="Enter your password" style="padding-top:6px" id="pwB1">
+            <button class="show" onclick="peek('pwB1',this)">Show</button>
+          </div>
+          <button class="cta">Log In &amp; Continue</button>
+        </div>
+        <p class="foot">New to Clock-IT? <a>Create an account</a></p>
+      </div>
+
+      <!-- AFTER -->
+      <div class="screen after">
+        <div class="blob-tl"></div><div class="blob-br"></div>
+        <div class="dot" style="top:62%;right:26px"></div>
+        <div class="topbar">
+          <button class="back">‹</button>
+        </div>
+        <div class="icon" style="margin-top:26px">⏰</div>
+        <h1 class="big" style="margin-top:10px">Welcome back</h1>
+        <div class="card" style="margin-top:30px">
+          <div class="field">
+            <input type="email" placeholder=" " autocomplete="email">
+            <label>Email</label>
+          </div>
+          <div class="field has-show">
+            <input type="password" placeholder=" " id="pwA1">
+            <label>Password</label>
+            <button class="show" onclick="peek('pwA1',this)">Show</button>
+          </div>
+          <button class="cta">Log In</button>
+        </div>
+        <p class="foot">New here? <a>Create account</a></p>
+      </div>
+    </div>
+    <div class="chips"><span>one heading, no subtitle</span><span>labels float on focus</span><span>CTA: “Log In”</span></div>
+  </div>
+
+  <!-- ════ SCREEN 2 · CREATE ACCOUNT ════ -->
+  <div class="wrap">
+    <div class="badge">Create Account &nbsp;·&nbsp; 36 → <b>13 words</b></div>
+    <div class="phone">
+
+      <!-- BEFORE -->
+      <div class="screen before">
+        <div class="blob-tl"></div><div class="blob-br"></div>
+        <div class="dot" style="top:57%;left:20px;width:9px;height:9px"></div>
+        <div class="dot" style="top:61%;right:56px;width:9px;height:9px"></div>
+        <div class="topbar">
+          <button class="back">‹</button>
+          <div class="topTitle">Create Account</div>
+          <div class="stepTxt">Step 1 of 2</div>
+        </div>
+        <div class="icon">🎀</div>
+        <h1 class="big">Join Clock-IT</h1>
+        <p class="sub">Create your private profile to begin<br>crafting your luxury countdown.</p>
+        <div class="card" style="padding-top:22px">
+          <div class="field" style="margin-bottom:14px">
+            <div style="font-size:12px;font-weight:700;letter-spacing:2px;color:var(--tan);margin:0 0 8px 4px">YOUR NAME</div>
+            <input type="text" placeholder="e.g. Charlotte" style="padding-top:6px">
+          </div>
+          <div class="field" style="margin-bottom:14px">
+            <div style="font-size:12px;font-weight:700;letter-spacing:2px;color:var(--tan);margin:0 0 8px 4px">EMAIL ADDRESS</div>
+            <input type="email" placeholder="name@example.com" style="padding-top:6px">
+          </div>
+          <div class="field has-show" style="margin-bottom:22px">
+            <div style="font-size:12px;font-weight:700;letter-spacing:2px;color:var(--tan);margin:0 0 8px 4px">PASSWORD</div>
+            <input type="password" placeholder="Min. 6 characters" style="padding-top:6px" id="pwB2">
+            <button class="show" onclick="peek('pwB2',this)">Show</button>
+          </div>
+          <button class="cta">Continue to Milestone Setup</button>
+        </div>
+        <p class="foot">Already have an account? <a>Log in</a></p>
+      </div>
+
+      <!-- AFTER -->
+      <div class="screen after">
+        <div class="blob-tl"></div><div class="blob-br"></div>
+        <div class="dot" style="top:57%;left:20px;width:9px;height:9px"></div>
+        <div class="dot" style="top:61%;right:56px;width:9px;height:9px"></div>
+        <div class="topbar">
+          <button class="back">‹</button>
+          <div class="steps"><i class="on"></i><i></i></div>
+        </div>
+        <div class="icon" style="margin-top:26px">🎀</div>
+        <h1 class="big" style="margin-top:10px">Join Clock-IT</h1>
+        <div class="card" style="margin-top:30px;padding-top:20px">
+          <div class="field">
+            <input type="text" placeholder=" " autocomplete="name">
+            <label>Your name</label>
+          </div>
+          <div class="field">
+            <input type="email" placeholder=" " autocomplete="email">
+            <label>Email</label>
+          </div>
+          <div class="field has-show">
+            <input type="password" placeholder=" " id="pwA2">
+            <label>Password</label>
+            <button class="show" onclick="peek('pwA2',this)">Show</button>
+            <div class="hint">Min. 6 characters</div>
+          </div>
+          <button class="cta">Continue</button>
+        </div>
+        <p class="foot">Have an account? <a>Log in</a></p>
+      </div>
+    </div>
+    <div class="chips"><span>dots replace “Step 1 of 2”</span><span>helper appears only on focus</span><span>CTA: “Continue”</span></div>
+  </div>
+</div>
+
+<script>
+  function setMode(before){
+    document.body.classList.toggle('show-before', before);
+    document.getElementById('bBtn').classList.toggle('on', before);
+    document.getElementById('aBtn').classList.toggle('on', !before);
+  }
+  function peek(id, btn){
+    const el = document.getElementById(id);
+    el.type = el.type === 'password' ? 'text' : 'password';
+    btn.textContent = el.type === 'password' ? 'Show' : 'Hide';
+  }
+  setMode(false);
+</script>
+</body>
+</html>

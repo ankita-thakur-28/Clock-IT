@@ -41,6 +41,7 @@ import SkincareRoutineModal from './src/components/modals/SkincareRoutineModal';
 import BodyCareModal from './src/components/modals/BodyCareModal';
 import CalendarHistoryView from './src/components/CalendarHistoryView';
 import ProfileSettingsView from './src/components/ProfileSettingsView';
+import FloatingLabelInput from './src/components/FloatingLabelInput';
 import {
   createUser,
   registerUser,
@@ -1031,8 +1032,11 @@ function AppContent({ initialSession }) {
               >
                 <Text style={styles.backButtonText}>‹</Text>
               </TouchableOpacity>
-              <Text style={styles.navTitle}>Create Account</Text>
-              <Text style={styles.navStep}>Step 1 of 2</Text>
+              <Text style={styles.navWordmark}>Clock-IT</Text>
+              <View style={styles.navDots}>
+                <View style={[styles.navDot, styles.navDotActive]} />
+                <View style={styles.navDot} />
+              </View>
             </View>
 
             <ScrollView
@@ -1043,9 +1047,6 @@ function AppContent({ initialSession }) {
               <View style={styles.authHeaderCenter}>
                 <BowIcon size={38} style={{ marginBottom: 8 }} />
                 <Text style={styles.authHeadline}>Join Clock-IT</Text>
-                <Text style={styles.authSubheadline}>
-                  Create your private profile to begin crafting your luxury countdown.
-                </Text>
               </View>
 
               {Boolean(authError) && (
@@ -1055,65 +1056,42 @@ function AppContent({ initialSession }) {
               )}
 
               <View style={styles.authCard}>
-                <View style={styles.authFormGroup}>
-                  <Text style={styles.authFieldLabel}>YOUR NAME</Text>
-                  <TextInput
-                    style={styles.authInput}
-                    placeholder="e.g. Charlotte"
-                    placeholderTextColor={THEME.inkLight}
-                    value={authName}
-                    onChangeText={(val) => {
-                      setAuthName(val);
-                      if (authError) setAuthError(null);
-                    }}
-                    autoCapitalize="words"
-                    autoCorrect={false}
-                  />
-                </View>
+                <FloatingLabelInput
+                  label="Name"
+                  value={authName}
+                  onChangeText={(val) => {
+                    setAuthName(val);
+                    if (authError) setAuthError(null);
+                  }}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                />
 
-                <View style={styles.authFormGroup}>
-                  <Text style={styles.authFieldLabel}>EMAIL ADDRESS</Text>
-                  <TextInput
-                    style={styles.authInput}
-                    placeholder="name@example.com"
-                    placeholderTextColor={THEME.inkLight}
-                    value={authEmail}
-                    onChangeText={(val) => {
-                      setAuthEmail(val);
-                      if (authError) setAuthError(null);
-                    }}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                </View>
+                <FloatingLabelInput
+                  label="Email"
+                  value={authEmail}
+                  onChangeText={(val) => {
+                    setAuthEmail(val);
+                    if (authError) setAuthError(null);
+                  }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
 
-                <View style={styles.authFormGroup}>
-                  <Text style={styles.authFieldLabel}>PASSWORD</Text>
-                  <View style={styles.passwordInputWrapper}>
-                    <TextInput
-                      style={styles.passwordInput}
-                      placeholder="Min. 6 characters"
-                      placeholderTextColor={THEME.inkLight}
-                      value={authPassword}
-                      onChangeText={(val) => {
-                        setAuthPassword(val);
-                        if (authError) setAuthError(null);
-                      }}
-                      secureTextEntry={!showPassword}
-                      autoCapitalize="none"
-                    />
-                    <TouchableOpacity
-                      onPress={() => setShowPassword(!showPassword)}
-                      style={styles.passwordToggle}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.passwordToggleText}>
-                        {showPassword ? 'Hide' : 'Show'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+                <FloatingLabelInput
+                  label="Password"
+                  value={authPassword}
+                  onChangeText={(val) => {
+                    setAuthPassword(val);
+                    if (authError) setAuthError(null);
+                  }}
+                  helperText="Min. 6 characters"
+                  secureTextEntry={!showPassword}
+                  showPasswordToggle={true}
+                  onTogglePassword={() => setShowPassword(!showPassword)}
+                  autoCapitalize="none"
+                />
 
                 <TouchableOpacity
                   activeOpacity={0.88}
@@ -1133,7 +1111,7 @@ function AppContent({ initialSession }) {
                     {loading ? (
                       <ActivityIndicator color="#FFFFFF" size="small" />
                     ) : (
-                      <Text style={styles.authSubmitBtnText}>Continue to Milestone Setup</Text>
+                      <Text style={styles.authSubmitBtnText}>Continue</Text>
                     )}
                   </LinearGradient>
                 </TouchableOpacity>
@@ -1147,9 +1125,7 @@ function AppContent({ initialSession }) {
                 }}
                 style={styles.authSwitchBtn}
               >
-                <Text style={styles.authSwitchText}>
-                  Already have an account? <Text style={styles.authSwitchHighlight}>Log in</Text>
-                </Text>
+                <Text style={styles.authSwitchHighlight}>Log in</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -1169,8 +1145,8 @@ function AppContent({ initialSession }) {
               >
                 <Text style={styles.backButtonText}>‹</Text>
               </TouchableOpacity>
-              <Text style={styles.navTitle}>Welcome Back</Text>
-              <View style={{ width: 40 }} />
+              <Text style={styles.navWordmark}>Clock-IT</Text>
+              <View style={{ width: 36 }} />
             </View>
 
             <ScrollView
@@ -1180,10 +1156,7 @@ function AppContent({ initialSession }) {
             >
               <View style={styles.authHeaderCenter}>
                 <HeroClock size={68} />
-                <Text style={styles.authHeadline}>Sign In to Clock-IT</Text>
-                <Text style={styles.authSubheadline}>
-                  Resume your defining countdown and daily rituals.
-                </Text>
+                <Text style={styles.authHeadline}>Welcome back</Text>
               </View>
 
               {Boolean(authError) && (
@@ -1193,49 +1166,30 @@ function AppContent({ initialSession }) {
               )}
 
               <View style={styles.authCard}>
-                <View style={styles.authFormGroup}>
-                  <Text style={styles.authFieldLabel}>EMAIL ADDRESS</Text>
-                  <TextInput
-                    style={styles.authInput}
-                    placeholder="name@example.com"
-                    placeholderTextColor={THEME.inkLight}
-                    value={authEmail}
-                    onChangeText={(val) => {
-                      setAuthEmail(val);
-                      if (authError) setAuthError(null);
-                    }}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                </View>
+                <FloatingLabelInput
+                  label="Email"
+                  value={authEmail}
+                  onChangeText={(val) => {
+                    setAuthEmail(val);
+                    if (authError) setAuthError(null);
+                  }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
 
-                <View style={styles.authFormGroup}>
-                  <Text style={styles.authFieldLabel}>PASSWORD</Text>
-                  <View style={styles.passwordInputWrapper}>
-                    <TextInput
-                      style={styles.passwordInput}
-                      placeholder="Enter your password"
-                      placeholderTextColor={THEME.inkLight}
-                      value={authPassword}
-                      onChangeText={(val) => {
-                        setAuthPassword(val);
-                        if (authError) setAuthError(null);
-                      }}
-                      secureTextEntry={!showPassword}
-                      autoCapitalize="none"
-                    />
-                    <TouchableOpacity
-                      onPress={() => setShowPassword(!showPassword)}
-                      style={styles.passwordToggle}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.passwordToggleText}>
-                        {showPassword ? 'Hide' : 'Show'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+                <FloatingLabelInput
+                  label="Password"
+                  value={authPassword}
+                  onChangeText={(val) => {
+                    setAuthPassword(val);
+                    if (authError) setAuthError(null);
+                  }}
+                  secureTextEntry={!showPassword}
+                  showPasswordToggle={true}
+                  onTogglePassword={() => setShowPassword(!showPassword)}
+                  autoCapitalize="none"
+                />
 
                 <TouchableOpacity
                   activeOpacity={0.88}
@@ -1255,7 +1209,7 @@ function AppContent({ initialSession }) {
                     {loading ? (
                       <ActivityIndicator color="#FFFFFF" size="small" />
                     ) : (
-                      <Text style={styles.authSubmitBtnText}>Log In & Continue</Text>
+                      <Text style={styles.authSubmitBtnText}>Log In</Text>
                     )}
                   </LinearGradient>
                 </TouchableOpacity>
@@ -1269,9 +1223,7 @@ function AppContent({ initialSession }) {
                 }}
                 style={styles.authSwitchBtn}
               >
-                <Text style={styles.authSwitchText}>
-                  New to Clock-IT? <Text style={styles.authSwitchHighlight}>Create an account</Text>
-                </Text>
+                <Text style={styles.authSwitchHighlight}>Create account</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -1289,7 +1241,10 @@ function AppContent({ initialSession }) {
                 <Text style={styles.backButtonText}>‹</Text>
               </TouchableOpacity>
               <Text style={styles.navTitle}>Set Your Milestone</Text>
-              <Text style={styles.navStep}>Step 1 of 2</Text>
+              <View style={styles.navDots}>
+                <View style={styles.navDot} />
+                <View style={[styles.navDot, styles.navDotActive]} />
+              </View>
             </View>
 
             <ScrollView
@@ -1299,12 +1254,12 @@ function AppContent({ initialSession }) {
               {/* 1. Name Input */}
               <View style={styles.formGroup}>
                 <Text style={styles.fieldLabel}>What should we call you?</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Your Name"
-                  placeholderTextColor={THEME.inkLight}
+                <FloatingLabelInput
+                  label="Your Name"
                   value={name}
                   onChangeText={setName}
+                  autoCapitalize="words"
+                  containerStyle={{ marginBottom: 0 }}
                 />
               </View>
 
@@ -1988,6 +1943,13 @@ const styles = StyleSheet.create({
     color: THEME.ink,
     lineHeight: 22,
   },
+  navWordmark: {
+    fontFamily: THEME.fonts.displayBold,
+    fontSize: 19,
+    color: THEME.ink,
+    letterSpacing: 0.5,
+    includeFontPadding: false,
+  },
   navTitle: {
     fontFamily: THEME.fonts.displayBold,
     fontSize: 18,
@@ -1997,6 +1959,23 @@ const styles = StyleSheet.create({
     fontFamily: THEME.fonts.bodySemiBold,
     fontSize: 11.5,
     color: THEME.inkSoft,
+  },
+  navDots: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  navDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: '#E6C9B4',
+  },
+  navDotActive: {
+    width: 22,
+    height: 9,
+    borderRadius: 99,
+    backgroundColor: '#CF8F9C',
   },
   scrollContent: {
     paddingVertical: 6,
@@ -2472,24 +2451,15 @@ const styles = StyleSheet.create({
   },
   authHeaderCenter: {
     alignItems: 'center',
-    marginBottom: 20,
-    marginTop: 6,
+    marginTop: 18,
+    marginBottom: 8,
   },
   authHeadline: {
     fontFamily: THEME.fonts.displayBold,
-    fontSize: 26,
+    fontSize: 28,
     color: THEME.ink,
-    marginTop: 6,
+    marginTop: 10,
     letterSpacing: 0.3,
-  },
-  authSubheadline: {
-    fontFamily: THEME.fonts.bodyRegular,
-    fontSize: 13,
-    color: THEME.inkSoft,
-    textAlign: 'center',
-    marginTop: 6,
-    lineHeight: 19,
-    paddingHorizontal: 16,
   },
   authErrorBox: {
     backgroundColor: '#FFF0F3',
@@ -2508,61 +2478,16 @@ const styles = StyleSheet.create({
   },
   authCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    padding: 20,
+    borderRadius: 26,
+    padding: 22,
     borderWidth: 1.2,
     borderColor: '#F3E5DA',
     shadowColor: '#4A2C33',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
     elevation: 2,
-  },
-  authFormGroup: {
-    marginBottom: 16,
-  },
-  authFieldLabel: {
-    fontFamily: THEME.fonts.bodyBold,
-    fontSize: 10.5,
-    letterSpacing: 1.2,
-    color: THEME.roseGold,
-    marginBottom: 6,
-  },
-  authInput: {
-    backgroundColor: '#FFFBF8',
-    borderWidth: 1.2,
-    borderColor: '#F0DFD3',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontFamily: THEME.fonts.bodyMedium,
-    fontSize: 14,
-    color: THEME.ink,
-  },
-  passwordInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFBF8',
-    borderWidth: 1.2,
-    borderColor: '#F0DFD3',
-    borderRadius: 12,
-  },
-  passwordInput: {
-    flex: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontFamily: THEME.fonts.bodyMedium,
-    fontSize: 14,
-    color: THEME.ink,
-  },
-  passwordToggle: {
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  passwordToggleText: {
-    fontFamily: THEME.fonts.bodySemiBold,
-    fontSize: 12,
-    color: THEME.roseGold,
+    marginTop: 16,
   },
   authSubmitBtnWrapper: {
     borderRadius: 100,

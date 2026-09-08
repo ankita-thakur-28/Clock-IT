@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Clock-IT — Project Flow</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  body { font-family: -apple-system, system-ui, sans-serif; max-width: 1100px; margin: 0 auto; padding: 24px; background: #faf9f7; color: #222; }
+  h1 { font-size: 26px; } h2 { margin-top: 40px; border-bottom: 2px solid #e0dad2; padding-bottom: 6px; }
+  .note { background: #fff7e6; border-left: 4px solid #e6a700; padding: 10px 14px; border-radius: 4px; font-size: 14px; }
+  .mermaid { background: #fff; border: 1px solid #e8e4de; border-radius: 8px; padding: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { border: 1px solid #ddd; padding: 6px 10px; text-align: left; }
+  th { background: #f0ece6; }
+</style>
+</head>
+<body>
+
+<h1>Clock-IT — Project Flow</h1>
+<p><em>All-in-one milestone-driven self-care companion. Current state: <strong>MVP 3 complete</strong> (JWT auth shipped) — pre-MVP 4.</em></p>
+
+<h2>1. System Architecture</h2>
+<div class="mermaid">
+flowchart LR
+  subgraph Mobile["📱 Expo / React Native app (mobile/)"]
+    UI["App.js (~2600 lines)<br/>step state machine + tab nav"]
+    API["api.js<br/>fetch + Bearer token, 25s timeout"]
+    STORE["storage.js<br/>AsyncStorage cache"]
+    UI --> API
+    UI --> STORE
+  end
+  subgraph Backend["☕ Spring Boot 3 (backend/)"]
+    CTL["Controllers<br/>Auth · User · Dashboard · Health"]
+    SVC["Services<br/>Auth · User · Dashboard · Streak · Countdown"]
+    REPO["Spring Data JPA Repos<br/>UserRepository · DailyLogRepository"]
+    JWT["JWT filter + token provider<br/>BCrypt passwords"]
+    CTL --> SVC --> REPO
+    JWT --> CTL
+  end
+  DB[("PostgreSQL 16<br/>Flyway V1, V2")]
+  REPO --> DB
+  API -->|"HTTPS → render.com<br/>/api/*"| CTL
+  classDef mobile fill:#e8f0fe,stroke:#5b80c2
+  classDef backend fill:#eaf7ea,stroke:#5a9e5a
+  class UI,API,STORE mobile
+  class CTL,SVC,REPO,JWT,DB backend
+</div>
+
+<h2>2. Mobile App — User Flow</h2>
+<div class="mermaid">
+flowchart TD
+  SPLASH["Splash"] --> SES{"Saved session<br/>in AsyncStorage?"}
+  SES -- No --> AUTH["Sign up / Log in<br/>(JWT from backend)"]
+  SES -- Yes --> COUNTDOWN
+  AUTH --> SETUP["Milestone Setup<br/>name · type · date · goal"]
+  SETUP --> COUNTDOWN["Countdown Dashboard"]
+  COUNTDOWN --> TAB1["Today tab<br/>hero countdown, weekly strip,<br/>Today's Glow routine grid"]
+  COUNTDOWN --> TAB2["Calendar tab<br/>history of daily logs"]
+  COUNTDOWN --> TAB3["Split tab<br/>workout overview"]
+  COUNTDOWN --> TAB4["Profile tab<br/>settings"]
+  TAB1 --> M1["Modals: Weight Log ·<br/>Skincare Routine · Body Care"]
+</div>
+
+<h2>3. Local-First Data Sync (daily log toggle)</h2>
+<div class="mermaid">
+sequenceDiagram
+  participant U as User taps a checklist item
+  participant L as App state + AsyncStorage
+  participant S as Spring Boot API
+  U->>L: Toggle routine item
+  L->>L: Update state + write cache instantly
+  L->>S: POST /api/v1/users/{id}/logs/today (best-effort)
+  alt Sync succeeds
+    S-->>L: 200 OK (server is source of truth)
+  else Offline / error
+    S--xL: Fails → "Saved locally" badge
+    Note over L: Cache reconciles on next cold start
+  end
+</div>
+
+<h2>4. Auth Flow (JWT)</h2>
+<div class="mermaid">
+sequenceDiagram
+  participant A as App
+  participant F as JwtAuthenticationFilter
+  participant C as AuthController
+  participant T as JwtTokenProvider
+  A->>C: POST /api/auth/register or /login
+  C-->>A: AuthResponse { JWT + user }
+  A->>A: Store @clockit:auth_token
+  A->>F: GET/POST /api/v1/... (Bearer token)
+  F->>T: Validate token
+  F->>C: SecurityContext set (userId in credentials)
+  C-->>A: JSON response
+</div>
+
+<h2>5. Domain Model — Countdown Engine</h2>
+<div class="mermaid">
+flowchart LR
+  M["Milestone date"] --> CD["CountdownService<br/>days remaining"]
+  CD --> PH{"Phase"}
+  PH -->|"180–90d"| F["Foundation"]
+  PH -->|"90–30d"| B["Build"]
+  PH -->|"30–7d"| R["Refine"]
+  PH -->|"7–0d"| A["Arrival"]
+  PH -->|"post"| MM["Maintenance & Glow"]
+  DL["Daily Log<br/>skincare · nutrition · workout · weight"] --> ST["StreakService"]
+  ST --> DASH["DashboardResponse<br/>countdown + phase + streak + weekly strip"]
+</div>
+
+<h2>6. MVP Roadmap Progress</h2>
+<table>
+<tr><th>#</th><th>Slice</th><th>Status</th></tr>
+<tr><td>0</td><td>Hello Countdown — user + milestone + server-computed countdown/phase</td><td>✅ Done</td></tr>
+<tr><td>1</td><td>Daily Checklist — DailyLog habit loop</td><td>✅ Done</td></tr>
+<tr><td>2</td><td>Calendar Home — calendar navigation of log history</td><td>✅ Done</td></tr>
+<tr><td>3</td><td>Real Users — Spring Security + JWT auth</td><td>✅ Done (latest commit)</td></tr>
+<tr><td>4</td><td>AI Diet — Claude meal plans + safety guardrails</td><td>⬜ Next</td></tr>
+<tr><td>5</td><td>AI Workouts + phase awareness</td><td>⬜</td></tr>
+<tr><td>6</td><td>Progress / Analytics — streaks, adherence charts</td><td>⬜</td></tr>
+<tr><td>7</td><td>Equipment Scanner — vision slice</td><td>⬜</td></tr>
+</table>
+
+<div class="note"><strong>⚠️ Known gap:</strong> <code>SecurityConfig</code> currently permits all of <code>/api/users/**</code> and <code>/api/v1/users/**</code> (auth optional), and user IDs are passed in the URL path rather than derived from the JWT — worth tightening in a future MVP.</div>
+
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral', flowchart: { curve: 'basis' } });</script>
+</body>
+</html>

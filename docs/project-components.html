@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Clock-IT — Component Guide</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, system-ui, "Segoe UI", sans-serif; background: #17181c; color: #f0f0f0; overflow: hidden; }
+
+  .slide {
+    display: none; width: 100vw; height: 100vh;
+    padding: 48px 72px; flex-direction: column;
+  }
+  .slide.active { display: flex; }
+  .slide.active .anim { animation: rise .45s ease both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+  .kicker { font-size: 15px; letter-spacing: 2.5px; text-transform: uppercase; color: #8f96a8; margin-bottom: 10px; }
+  h1 { font-size: 58px; line-height: 1.1; margin-bottom: 18px; }
+  h2 { font-size: 40px; margin-bottom: 6px; }
+  .file { display: inline-block; font-family: "SF Mono", Menlo, monospace; font-size: 15px; background: #262933; border: 1px solid #3a3f4d; color: #9fd0ff; padding: 4px 12px; border-radius: 20px; margin-bottom: 26px; }
+  .cols { display: flex; gap: 48px; flex: 1; align-items: stretch; min-height: 0; }
+  .col { flex: 1; }
+  ul { list-style: none; font-size: 21px; line-height: 1.55; }
+  ul li { padding-left: 26px; position: relative; margin-bottom: 14px; color: #d6d9e0; }
+  ul li::before { content: "▸"; position: absolute; left: 0; color: #6ea8ff; }
+  .talks { margin-top: auto; font-size: 16px; color: #8f96a8; border-top: 1px solid #2c2f3a; padding-top: 14px; }
+  .talks b { color: #c6cad4; }
+
+  /* diagram primitives */
+  .diagram { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; flex: 1; }
+  .box { background: #20232c; border: 1.5px solid #3a3f4d; border-radius: 10px; padding: 14px 22px; text-align: center; font-size: 18px; min-width: 220px; }
+  .box .t { font-weight: 700; font-size: 19px; }
+  .box .s { font-size: 14px; color: #9aa1b2; margin-top: 4px; }
+  .blue   { border-color: #4d7fd6; box-shadow: 0 0 18px rgba(77,127,214,.18); }
+  .green  { border-color: #4fae6d; box-shadow: 0 0 18px rgba(79,174,109,.18); }
+  .orange { border-color: #d6944d; box-shadow: 0 0 18px rgba(214,148,77,.18); }
+  .purple { border-color: #9b6ed6; box-shadow: 0 0 18px rgba(155,110,214,.2); }
+  .red    { border-color: #d65b6e; box-shadow: 0 0 18px rgba(214,91,110,.18); }
+  .arrow { color: #6b7284; font-size: 22px; line-height: 1; }
+  .row { display: flex; gap: 18px; align-items: center; justify-content: center; }
+  .lbl { font-size: 13px; color: #8f96a8; margin: -4px 0; }
+  .tag { display: inline-block; font-family: "SF Mono", Menlo, monospace; font-size: 14px; background: #262933; padding: 3px 10px; border-radius: 6px; margin: 3px; color: #cdd3e0; }
+  .note { margin-top: 20px; background: #2a2416; border-left: 4px solid #d6a94d; padding: 12px 18px; border-radius: 6px; font-size: 17px; color: #e8ddb8; }
+  .good { background: #16281c; border-color: #4fae6d; color: #bfe8cd; }
+
+  /* roadmap */
+  .road { display: flex; gap: 10px; margin-top: 30px; }
+  .mile { flex: 1; background: #20232c; border: 1.5px solid #3a3f4d; border-radius: 10px; padding: 16px 12px; text-align: center; }
+  .mile .n { font-size: 30px; font-weight: 800; }
+  .mile .d { font-size: 13px; color: #9aa1b2; margin-top: 6px; line-height: 1.35; }
+  .mile.done { border-color: #4fae6d; background: #1a2b20; }
+  .mile.next { border-color: #d6944d; background: #2a2416; }
+
+  /* nav */
+  .nav { position: fixed; bottom: 22px; right: 30px; display: flex; gap: 10px; align-items: center; z-index: 10; }
+  .nav button { background: #262933; color: #f0f0f0; border: 1px solid #3a3f4d; border-radius: 8px; padding: 9px 18px; font-size: 16px; cursor: pointer; }
+  .nav button:hover { background: #333845; }
+  .counter { position: fixed; bottom: 30px; left: 30px; color: #6b7284; font-size: 15px; z-index: 10; }
+  .bar { position: fixed; top: 0; left: 0; height: 4px; background: #4d7fd6; z-index: 10; transition: width .25s; }
+
+  @media print {
+    body { overflow: visible; background: #fff; color: #111; }
+    .slide { display: flex !important; page-break-after: always; height: auto; min-height: 100vh; }
+    .nav, .counter, .bar { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bar" id="bar"></div>
+
+<!-- 1 · TITLE -->
+<section class="slide">
+  <div class="kicker">Project walkthrough · 14 slides</div>
+  <h1>Clock-IT</h1>
+  <p style="font-size:26px; color:#c6cad4; max-width:900px; line-height:1.5;">
+    A milestone-driven self-care companion: skincare, nutrition &amp; fitness plans that adapt to a
+    <b style="color:#6ea8ff">countdown</b> the user sets — e.g. “my wedding in 90 days”.
+  </p>
+  <div class="note good" style="max-width:760px;">
+    <b>Where we are:</b> MVP 3 of 8 shipped — real users with JWT auth. Next up: AI Diet Planner.
+  </div>
+  <p class="talks" style="max-width:760px;">Navigate with <b>← →</b> arrow keys or the buttons. Each slide = one component: what it is, where it lives, who it talks to.</p>
+</section>
+
+<!-- 2 · BIG PICTURE -->
+<section class="slide">
+  <div class="kicker">Slide 2</div>
+  <h2>The Big Picture</h2>
+  <p class="file">mobile/ · backend/ · docker-compose.yml · render.yaml</p>
+  <div class="cols" style="align-items:center;">
+    <div class="diagram">
+      <div class="box blue" style="min-width:300px;"><div class="t">📱 Mobile App</div><div class="s">Expo / React Native<br>the whole user experience</div></div>
+      <div class="arrow">▼ &nbsp;HTTPS · /api/* · Bearer JWT</div>
+      <div class="box green" style="min-width:300px;"><div class="t">☕ Spring Boot 3 Backend</div><div class="s">REST API · countdown engine<br>deployed on Render.com</div></div>
+      <div class="arrow">▼ &nbsp;JPA / Hibernate</div>
+      <div class="box orange" style="min-width:300px;"><div class="t">🐘 PostgreSQL 16</div><div class="s">users + daily logs<br>Flyway migrations</div></div>
+    </div>
+    <div class="col">
+      <ul>
+        <li><b>Two codebases, one product.</b> <code>mobile/</code> is the app (iOS, Android, web). <code>backend/</code> is the API it talks to.</li>
+        <li><b>The phone stays smart offline</b> — it caches everything locally and syncs when it can.</li>
+        <li><b>The backend is the rule-book</b> — countdown math, phases, streaks live server-side.</li>
+        <li>Docker Compose runs the same trio locally: Postgres, backend on :8088, web on :8082.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 3 · COMPONENT MAP -->
+<section class="slide">
+  <div class="kicker">Slide 3</div>
+  <h2>The Bits &amp; Pieces</h2>
+  <p style="color:#9aa1b2; margin-bottom:24px;">10 components — the next 8 slides deep-dive each one.</p>
+  <div class="row" style="align-items:stretch;">
+    <div class="box blue" style="flex:1;"><div class="t">📱 MOBILE</div>
+      <div style="margin-top:12px; text-align:left; font-size:16px; line-height:2;">
+        ① <b>App.js</b> — screens &amp; navigation<br>
+        ② <b>api.js</b> — talks to the server<br>
+        ③ <b>storage.js</b> — offline memory
+      </div>
+    </div>
+    <div class="box green" style="flex:1;"><div class="t">☕ BACKEND</div>
+      <div style="margin-top:12px; text-align:left; font-size:16px; line-height:2;">
+        ④ Controllers — the front door<br>
+        ⑤ Services — the rule-book<br>
+        ⑥ Repos &amp; Models — the records<br>
+        ⑦ Security — JWT guard
+      </div>
+    </div>
+    <div class="box orange" style="flex:1;"><div class="t">🐘 DATA</div>
+      <div style="margin-top:12px; text-align:left; font-size:16px; line-height:2;">
+        ⑧ PostgreSQL — storage<br>
+        ⑨ Flyway — versioned schema
+      </div>
+    </div>
+  </div>
+  <div class="note" style="max-width:820px;"><b>⑩ The full journey</b> — slide 12 puts every piece together into one request lifecycle.</div>
+</section>
+
+<!-- 4 · APP.JS -->
+<section class="slide">
+  <div class="kicker">Component ① · Mobile</div>
+  <h2>App.js — the brain</h2>
+  <p class="file">mobile/App.js (~2600 lines) + mobile/src/components/</p>
+  <div class="cols">
+    <div class="col">
+      <ul>
+        <li>One file runs the whole UI. No react-navigation — screens are a <b>step state machine</b>.</li>
+        <li><b>Returning users skip login</b>: a saved AsyncStorage session lands them straight on the dashboard.</li>
+        <li>Inside the app, a bottom dock switches <b>4 tabs</b>; modals handle weight, skincare &amp; body-care logging.</li>
+        <li>State is plain React <code>useState</code>/<code>useEffect</code> — no Redux, no Context.</li>
+      </ul>
+      <div class="talks"><b>Talks to:</b> api.js (network) · storage.js (cache) · components/ (UI pieces)</div>
+    </div>
+    <div class="diagram">
+      <div class="box blue"><div class="t">Splash</div></div>
+      <div class="arrow">▼ saved session? — no ▼</div>
+      <div class="row">
+        <div class="box blue"><div class="t">Sign up / Log in</div><div class="s">gets JWT</div></div>
+        <div class="arrow">▶</div>
+        <div class="box blue"><div class="t">Milestone Setup</div><div class="s">name · type · date · goal</div></div>
+      </div>
+      <div class="arrow">▼ yes, skip straight here ▼</div>
+      <div class="box blue"><div class="t">Countdown Dashboard</div><div class="s">[Today] [Calendar] [Split] [Profile]</div></div>
+      <div class="arrow">▼</div>
+      <div class="lbl">Modals: Weight Log · Skincare · Body Care</div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 · API.JS -->
+<section class="slide">
+  <div class="kicker">Component ② · Mobile</div>
+  <h2>api.js — the messenger</h2>
+  <p class="file">mobile/src/services/api.js</p>
+  <div class="cols">
+    <div class="col">
+      <ul>
+        <li>A thin <code>fetch</code> wrapper — every call gets a <b>25-second timeout</b> and auto-injects the <b>Bearer token</b> from storage.</li>
+        <li>Base URL from <code>EXPO_PUBLIC_API_URL</code>; falls back to the Render deployment (native) or localhost:8088 (web dev).</li>
+        <li>10 exported functions = the app's entire contract with the server.</li>
+      </ul>
+      <div style="margin-top:18px;">
+        <span class="tag">POST /api/auth/register</span><span class="tag">POST /api/auth/login</span><span class="tag">GET /api/auth/me</span><span class="tag">GET …/{id}/dashboard</span><span class="tag">POST …/logs/today</span><span class="tag">GET …/logs</span><span class="tag">POST …/logs/{date}</span><span class="tag">PUT …/milestone</span>
+      </div>
+      <div class="talks"><b>Talks to:</b> Spring Boot controllers over HTTPS</div>
+    </div>
+    <div class="diagram">
+      <div class="box blue"><div class="t">api.js</div><div class="s">fn + Bearer token + 25s timeout</div></div>
+      <div class="arrow">▼ HTTPS</div>
+      <div class="box green"><div class="t">Backend /api/*</div><div class="s">JSON in, JSON out</div></div>
+      <div class="arrow">▼</div>
+      <div class="box orange"><div class="t">PostgreSQL</div><div class="s">source of truth</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 · STORAGE.JS -->
+<section class="slide">
+  <div class="kicker">Component ③ · Mobile</div>
+  <h2>storage.js — the offline memory</h2>
+  <p class="file">mobile/src/services/storage.js</p>
+  <div class="cols">
+    <div class="col">
+      <ul>
+        <li>Four AsyncStorage keys hold the whole client-side world:</li>
+      </ul>
+      <div style="margin:10px 0 18px;">
+        <span class="tag">@clockit:auth_token</span><span class="tag">active_user</span><span class="tag">dashboard_cache</span><span class="tag">daily_logs_map</span>
+      </div>
+      <ul>
+        <li><b>Local-first pattern:</b> a checklist tap saves locally <i>instantly</i>, then syncs in the background.</li>
+        <li>If sync fails: toast says “Backend sync failed, saved locally” — the user never loses a checkmark.</li>
+        <li>Caches give an <b>instant cold start</b> — no spinner while the dashboard loads.</li>
+      </ul>
+      <div class="talks"><b>Talks to:</b> App.js (reads/writes) · api.js (receives fresh server data)</div>
+    </div>
+    <div class="diagram">
+      <div class="box blue"><div class="t">👆 Tap a routine item</div></div>
+      <div class="arrow">▼ 1. instantly</div>
+      <div class="box orange"><div class="t">AsyncStorage + local state</div><div class="s">UI updates, cache updated</div></div>
+      <div class="arrow">▼ 2. best-effort background sync</div>
+      <div class="box green"><div class="t">POST /logs/today</div><div class="s">offline? → badge “saved locally”, retry next launch</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 7 · CONTROLLERS -->
+<section class="slide">
+  <div class="kicker">Component ④ · Backend</div>
+  <h2>Controllers — the front door</h2>
+  <p class="file">backend/src/main/java/com/clockit/controller/</p>
+  <div class="cols">
+    <div class="col">
+      <ul>
+        <li>Four controllers map every HTTP route. They <b>validate input, call services, return DTOs</b> — no business logic here.</li>
+        <li><b>AuthController</b>: register / login / me<br><b>UserController</b>: create &amp; fetch users, update milestone<br><b>DashboardController</b>: the aggregated dashboard + daily-log endpoints<br><b>HealthController</b>: uptime probe for Render.</li>
+        <li>The dashboard endpoint is the workhorse — one call returns everything the home screen needs.</li>
+      </ul>
+      <div class="talks"><b>Talks to:</b> api.js (receives) · Services (delegates) · JWT filter (is protected by)</div>
+    </div>
+    <div class="diagram">
+      <div class="box blue"><div class="s">from mobile</div><div class="t">HTTP request</div></div>
+      <div class="arrow">▼</div>
+      <div class="row">
+        <div class="box green"><div class="t">Auth<br>Controller</div></div>
+        <div class="box green"><div class="t">User<br>Controller</div></div>
+      </div>
+      <div class="row">
+        <div class="box green"><div class="t">Dashboard<br>Controller</div></div>
+        <div class="box green"><div class="t">Health<br>Controller</div></div>
+      </div>
+      <div class="arrow">▼ delegate</div>
+      <div class="box purple"><div class="t">Service layer →</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 8 · SERVICES -->
+<section class="slide">
+  <div class="kicker">Component ⑤ · Backend — the domain core</div>
+  <h2>Services — the rule-book</h2>
+  <p class="file">backend/…/service/ — CountdownService · StreakService · DashboardService · AuthService · UserService</p>
+  <div class="cols">
+    <div class="col">
+      <ul>
+        <li><b>CountdownService</b> turns the milestone date into days-remaining + a <b>Phase</b>:</li>
+      </ul>
+      <div style="margin:8px 0 16px;">
+        <span class="tag">Foundation 180–90d</span><span class="tag">Build 90–30d</span><span class="tag">Refine 30–7d</span><span class="tag">Arrival 7–0d</span><span class="tag">Maintenance ✨</span>
+      </div>
+      <ul>
+        <li><b>StreakService</b> scans DailyLogs for consecutive “glow days”.</li>
+        <li><b>DashboardService</b> orchestrates the rest — one response with countdown, phase, streak, weekly strip &amp; today's routine cards.</li>
+        <li>This is where product logic lives — the mobile app just displays it.</li>
+      </ul>
+      <div class="talks"><b>Talks to:</b> Controllers (called by) · Repositories (call)</div>
+    </div>
+    <div class="diagram">
+      <div class="box green"><div class="t">DashboardService</div><div class="s">the orchestrator</div></div>
+      <div class="arrow">▼ pulls from</div>
+      <div class="row">
+        <div class="box green"><div class="t">CountdownService</div><div class="s">days left → Phase</div></div>
+        <div class="box green"><div class="t">StreakService</div><div class="s">consecutive logs → 🔥</div></div>
+      </div>
+      <div class="arrow">▼ returns</div>
+      <div class="box purple"><div class="t">DashboardResponse</div><div class="s">countdown · phase · streak · week · today's glow</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 9 · REPOS & MODELS -->
+<section class="slide">
+  <div class="kicker">Component ⑥ · Backend</div>
+  <h2>Repos &amp; Models — the records</h2>
+  <p class="file">backend/…/repository/ · backend/…/model/</p>
+  <div class="cols">
+    <div class="col">
+      <ul>
+        <li>Two JPA entities cover the whole product so far: <b>User</b> and <b>DailyLog</b> (one row per user per day).</li>
+        <li>Spring Data repositories give CRUD for free — no SQL in Java code.</li>
+        <li>DailyLog is the heart of the habit loop: six routine modules, all optional, all non-scale-first.</li>
+      </ul>
+      <div class="talks"><b>Talks to:</b> Services (called by) · PostgreSQL via Hibernate</div>
+    </div>
+    <div class="diagram">
+      <div class="box purple"><div class="t">User</div><div class="s">id · name · email · passwordHash<br>milestoneDate · milestoneType · goal<br>trackingPreferences · height</div></div>
+      <div class="arrow">1 ─── ◆ has many ─── ▼</div>
+      <div class="box purple"><div class="t">DailyLog</div><div class="s">logDate · skincare AM/PM · nutrition<br>workout name/duration · weightAM · notes</div></div>
+      <div class="arrow">▼</div>
+      <div class="row">
+        <div class="box green"><div class="s">repository</div><div class="t">UserRepository</div></div>
+        <div class="box green"><div class="s">repository</div><div class="t">DailyLogRepository</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 10 · SECURITY -->
+<section class="slide">
+  <div class="kicker">Component ⑦ · Backend</div>
+  <h2>Security — the JWT guard</h2>
+  <p class="file">backend/…/config/ — SecurityConfig · JwtAuthenticationFilter · JwtTokenProvider</p>
+  <div class="cols">
+    <div class="col">
+      <ul>
+        <li><b>Stateless JWT:</b> no server sessions. Passwords are BCrypt-hashed, never stored raw.</li>
+        <li><b>JwtTokenProvider</b> signs &amp; verifies tokens; <b>JwtAuthenticationFilter</b> checks the Bearer header on every request before it reaches a controller.</li>
+        <li>The app stores the token in AsyncStorage and attaches it to every call.</li>
+      </ul>
+      <div class="note"><b>⚠️ Honest caveat for Q&amp;A:</b> <code>/api/v1/users/**</code> is currently <code>permitAll</code> and user IDs ride in the URL instead of being derived from the token. Auth exists and works — endpoint hardening is the next security pass.</div>
+      <div class="talks"><b>Talks to:</b> every request (filter chain) · AuthController (issues tokens)</div>
+    </div>
+    <div class="diagram">
+      <div class="box blue"><div class="t">Register / Login</div></div>
+      <div class="arrow">▼ BCrypt hash · issue token</div>
+      <div class="box red"><div class="t">JWT</div><div class="s">stored on device</div></div>
+      <div class="arrow">▼ sent as “Authorization: Bearer …”</div>
+      <div class="box red"><div class="t">JwtAuthenticationFilter</div><div class="s">validates signature → sets Authentication</div></div>
+      <div class="arrow">▼ allowed through</div>
+      <div class="box green"><div class="t">Controllers</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 11 · DATABASE -->
+<section class="slide">
+  <div class="kicker">Components ⑧ + ⑨ · Data</div>
+  <h2>PostgreSQL + Flyway — versioned storage</h2>
+  <p class="file">backend/src/main/resources/db/migration/</p>
+  <div class="cols">
+    <div class="col">
+      <ul>
+        <li>Schema changes are <b>code-reviewed migrations</b>, not manual SQL — Flyway applies them in order on every deploy.</li>
+        <li><code>V1__init_schema.sql</code> → users table.<br><code>V2__create_daily_logs.sql</code> → daily_logs with FK to users.</li>
+        <li>Same database locally (Docker) and in production (Render Postgres) — portable and boring, on purpose.</li>
+      </ul>
+      <div class="talks"><b>Talks to:</b> JPA repositories via Hibernate</div>
+    </div>
+    <div class="diagram">
+      <div class="box green"><div class="t">V1__init_schema</div><div class="s">users</div></div>
+      <div class="arrow">▼ applied in order</div>
+      <div class="box green"><div class="t">V2__create_daily_logs</div><div class="s">daily_logs (user_id FK)</div></div>
+      <div class="arrow">▼ next up would be</div>
+      <div class="box orange"><div class="t">PostgreSQL 16</div><div class="s">Docker (dev) · Render (prod)</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 12 · FULL JOURNEY -->
+<section class="slide">
+  <div class="kicker">Component ⑩</div>
+  <h2>The Full Journey — one tap, end to end</h2>
+  <p class="file">“User checks off ‘morning skincare’”</p>
+  <div class="diagram" style="gap:6px;">
+    <div class="row">
+      <div class="box blue"><div class="t">1 · App.js</div><div class="s">tap handler fires</div></div>
+      <div class="arrow">▶</div>
+      <div class="box orange"><div class="t">2 · storage.js</div><div class="s">save locally — instant, offline-safe</div></div>
+      <div class="arrow">▶</div>
+      <div class="box blue"><div class="t">3 · api.js</div><div class="s">POST /logs/today + Bearer JWT</div></div>
+    </div>
+    <div class="arrow">▼ HTTPS over the internet</div>
+    <div class="row">
+      <div class="box red"><div class="t">4 · JWT filter</div><div class="s">token verified</div></div>
+      <div class="arrow">▶</div>
+      <div class="box green"><div class="t">5 · DashboardController</div><div class="s">route + validate</div></div>
+      <div class="arrow">▶</div>
+      <div class="box green"><div class="t">6 · DashboardService</div><div class="s">recompute streak + phase</div></div>
+    </div>
+    <div class="arrow">▼</div>
+    <div class="row">
+      <div class="box orange"><div class="t">7 · Repository → PostgreSQL</div><div class="s">daily_logs row persisted</div></div>
+      <div class="arrow">◀── response bubbles back: 200 OK, server is now source of truth</div>
+    </div>
+  </div>
+  <div class="note good" style="max-width:900px;"><b>Why it's resilient:</b> step 2 happens <i>before</i> step 3 — even if the network dies at step 3, the user's checkmark is already saved on the phone.</div>
+</section>
+
+<!-- 13 · ROADMAP -->
+<section class="slide">
+  <div class="kicker">Slide 13</div>
+  <h2>Roadmap — 8 vertical-slice MVPs</h2>
+  <p style="color:#9aa1b2;">Each MVP is thin, full-stack and deployable — ship the slice, then build the next.</p>
+  <div class="road">
+    <div class="mile done"><div class="n">0 ✓</div><div class="d">Hello Countdown<br>milestone + phase engine</div></div>
+    <div class="mile done"><div class="n">1 ✓</div><div class="d">Daily Checklist<br>DailyLog habit loop</div></div>
+    <div class="mile done"><div class="n">2 ✓</div><div class="d">Calendar Home<br>log history</div></div>
+    <div class="mile done"><div class="n">3 ✓</div><div class="d">Real Users<br>Spring Security + JWT</div></div>
+    <div class="mile next"><div class="n">4 ▶</div><div class="d">AI Diet<br>Claude meal plans + safety guardrails</div></div>
+    <div class="mile"><div class="n">5</div><div class="d">AI Workouts<br>+ phase awareness</div></div>
+    <div class="mile"><div class="n">6</div><div class="d">Progress<br>analytics &amp; adherence</div></div>
+    <div class="mile"><div class="n">7</div><div class="d">Equipment Scanner<br>vision slice</div></div>
+  </div>
+  <div class="note" style="max-width:900px;"><b>Deferred to v2.0:</b> Glow Feed (community), AI coach check-ins, push notifications — see CLOCK-IT-VISION-2.0.md.</div>
+</section>
+
+<!-- 14 · PRESENT -->
+<section class="slide">
+  <div class="kicker">Slide 14</div>
+  <h2>30-Second Pitch</h2>
+  <div class="note good" style="font-size:22px; line-height:1.7; max-width:960px; margin-top:10px;">
+    “Clock-IT adapts your self-care routine to <b>your deadline</b>. You set a milestone; the backend computes a countdown and a phase — Foundation, Build, Refine, Arrival — and shapes each day's checklist accordingly. The Expo app works fully offline with local-first logging; the Spring Boot API owns the rules; Postgres is the source of truth. Four MVPs are shipped including JWT auth; the AI diet planner is next, gated by a server-side safety-guardrail layer.”
+  </div>
+  <div class="cols" style="margin-top:34px;">
+    <div class="col"><ul>
+      <li><b>Strongest talking point:</b> offline-first sync — data survives dead zones.</li>
+      <li><b>Domain vocabulary to use:</b> Countdown, Phase, Daily Log, Routine Module (defined in CONTEXT.md).</li>
+    </ul></div>
+    <div class="col"><ul>
+      <li><b>Known gap to own proactively:</b> user endpoints not yet JWT-enforced; IDs in URL path.</li>
+      <li><b>Docs for deeper Qs:</b> CONTEXT.md · CLOCK-IT-MVP-ROADMAP.md · docs/adr/.</li>
+    </ul></div>
+  </div>
+</section>
+
+<div class="counter" id="counter">1 / 14</div>
+<div class="nav">
+  <button onclick="go(-1)">← Prev</button>
+  <button onclick="go(1)">Next →</button>
+</div>
+
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  let i = 0;
+  function show() {
+    slides.forEach((s, n) => s.classList.toggle('active', n === i));
+    document.getElementById('counter').textContent = (i + 1) + ' / ' + slides.length;
+    document.getElementById('bar').style.width = ((i) / (slides.length - 1) * 100) + '%';
+  }
+  function go(d) { i = Math.min(slides.length - 1, Math.max(0, i + d)); show(); }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') go(1);
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') go(-1);
+    if (e.key === 'Home') { i = 0; show(); }
+    if (e.key === 'End') { i = slides.length - 1; show(); }
+  });
+  show();
+</script>
+</body>
+</html>
