@@ -1,8 +1,10 @@
 package com.clockit.controller;
 
 import com.clockit.dto.AuthResponse;
+import com.clockit.dto.GoogleAuthRequest;
 import com.clockit.dto.LoginRequest;
 import com.clockit.dto.RegisterRequest;
+import com.clockit.dto.ResetPasswordRequest;
 import com.clockit.dto.UpdateMilestoneRequest;
 import com.clockit.dto.UserResponse;
 import com.clockit.service.AuthService;
@@ -146,5 +148,37 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.milestoneType").value("Wedding"))
                 .andExpect(jsonPath("$.daysRemaining").value(100));
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/reset-password returns 200 with success message")
+    void testResetPasswordSuccess() throws Exception {
+        ResetPasswordRequest request = new ResetPasswordRequest("test@clockit.app", "newSecret123");
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Password successfully reset"));
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/google returns 200 with JWT and user")
+    void testGoogleLoginSuccess() throws Exception {
+        GoogleAuthRequest request = new GoogleAuthRequest("googleuser@clockit.app", "Google User", "google-12345", null);
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(12L);
+        userResponse.setName("Google User");
+        userResponse.setEmail("googleuser@clockit.app");
+
+        AuthResponse authResponse = new AuthResponse("mock-google-jwt-token", userResponse, false);
+        when(authService.googleLogin(any(GoogleAuthRequest.class))).thenReturn(authResponse);
+
+        mockMvc.perform(post("/api/auth/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("mock-google-jwt-token"))
+                .andExpect(jsonPath("$.hasMilestone").value(false));
     }
 }

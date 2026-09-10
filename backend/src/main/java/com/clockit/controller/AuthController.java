@@ -1,8 +1,10 @@
 package com.clockit.controller;
 
 import com.clockit.dto.AuthResponse;
+import com.clockit.dto.GoogleAuthRequest;
 import com.clockit.dto.LoginRequest;
 import com.clockit.dto.RegisterRequest;
+import com.clockit.dto.ResetPasswordRequest;
 import com.clockit.dto.UpdateMilestoneRequest;
 import com.clockit.dto.UserResponse;
 import com.clockit.service.AuthService;
@@ -62,6 +64,26 @@ public class AuthController {
                                              @Valid @RequestBody UpdateMilestoneRequest request) {
         try {
             UserResponse response = authService.updateMilestone(id, request);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    @PostMapping("/api/auth/reset-password")
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        try {
+            authService.resetPassword(request);
+            return ResponseEntity.ok(Map.of("message", "Password successfully reset"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    @PostMapping("/api/auth/google")
+    public ResponseEntity<?> googleLogin(@Valid @RequestBody GoogleAuthRequest request) {
+        try {
+            AuthResponse response = authService.googleLogin(request);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));

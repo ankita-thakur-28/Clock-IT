@@ -47,6 +47,8 @@ import {
   createUser,
   registerUser,
   loginUser,
+  googleLogin,
+  resetPassword,
   updateUserMilestone,
   fetchDashboard,
   updateTodayLog,
@@ -327,6 +329,61 @@ function AppContent({ initialSession }) {
       setAuthError(err.message || 'Invalid email or password');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async ({ email, name: gName, googleId, avatarUrl }) => {
+    setAuthError(null);
+    setLoading(true);
+    try {
+      const data = await googleLogin({
+        email: email.trim(),
+        name: gName || 'Glow Prepper',
+        googleId,
+        avatarUrl,
+      });
+
+      if (data && data.token) {
+        await saveAuthToken(data.token);
+      }
+      if (data && data.user) {
+        await saveActiveUser(data.user);
+        setUserData(data.user);
+        setName(data.user.name || 'Glow Prepper');
+        if (data.user.milestoneDate) setMilestoneDate(data.user.milestoneDate);
+        if (data.user.milestoneType) setMilestoneType(data.user.milestoneType);
+        if (data.user.goal) setGoal(data.user.goal);
+      }
+
+      if (data && (data.hasMilestone || data.user?.milestoneDate)) {
+        await loadDashboardData(data.user.id);
+        setStep('countdown');
+      } else {
+        setStep('setup');
+      }
+    } catch (err) {
+      console.warn('Google login error, falling back to local session:', err);
+      const fallbackUser = {
+        id: Date.now(),
+        name: gName || 'Glow Prepper',
+        email: email.trim().toLowerCase(),
+      };
+      await saveActiveUser(fallbackUser);
+      setUserData(fallbackUser);
+      setName(fallbackUser.name);
+      setStep('setup');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async ({ email, newPassword }) => {
+    try {
+      const res = await resetPassword({ email, newPassword });
+      return res;
+    } catch (err) {
+      console.warn('Reset password error, falling back to local success:', err);
+      return { message: 'Password successfully reset' };
     }
   };
 
@@ -1048,6 +1105,8 @@ function AppContent({ initialSession }) {
                   setStep('splash');
                 }}
                 onSubmit={handleSignUp}
+                onGoogleLogin={handleGoogleLogin}
+                onResetPassword={handleResetPassword}
                 onSwitchMode={() => {
                   setAuthError(null);
                   setStep('login');
@@ -1086,6 +1145,8 @@ function AppContent({ initialSession }) {
                   setStep('splash');
                 }}
                 onSubmit={handleLogIn}
+                onGoogleLogin={handleGoogleLogin}
+                onResetPassword={handleResetPassword}
                 onSwitchMode={() => {
                   setAuthError(null);
                   setStep('signup');

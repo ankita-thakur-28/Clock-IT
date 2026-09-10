@@ -154,6 +154,34 @@ export async function loginUser({ email, password }) {
   return data;
 }
 
+export async function resetPassword({ email, newPassword }) {
+  const res = await fetchWithTimeout(`${API_BASE}/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, newPassword }),
+  }, 25000);
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Password reset failed');
+  }
+  return data;
+}
+
+export async function googleLogin({ email, name, googleId, avatarUrl }) {
+  const res = await fetchWithTimeout(`${API_BASE}/auth/google`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, name, googleId, avatarUrl }),
+  }, 25000);
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Google login failed');
+  }
+  return data;
+}
+
 export async function getAuthProfile() {
   const res = await fetchWithTimeout(`${API_BASE}/auth/me`, {
     method: 'GET',

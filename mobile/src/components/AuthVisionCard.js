@@ -8,6 +8,7 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path, Circle, Rect } from 'react-native-svg';
@@ -281,11 +282,29 @@ export default function AuthVisionCard({
   setAuthError,
   onBack,
   onSubmit,
+  onGoogleLogin,
+  onResetPassword,
   onSwitchMode,
 }) {
   const isSignup = mode === 'signup';
   const [showPassword, setShowPassword] = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
+
+  // Forgot Password Modal State
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetPasswordVal, setResetPasswordVal] = useState('');
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState(null);
+
+  // Google Sign-In Modal State
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState('');
+  const [googleName, setGoogleName] = useState('');
+  const [customGoogleInput, setCustomGoogleInput] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleError, setGoogleError] = useState(null);
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const emailError =
@@ -297,18 +316,83 @@ export default function AuthVisionCard({
     ? Boolean(name?.trim()) && emailValid && password.length >= 6
     : emailValid && password.length > 0;
 
-  const handleForgotPassword = () => {
-    Alert.alert(
-      'Forgot Password',
-      'Password recovery instructions will be sent to your email address if an account exists.'
-    );
+  // Open Forgot Password Dialog
+  const handleOpenForgotPassword = () => {
+    setResetEmail(email || '');
+    setResetPasswordVal('');
+    setResetError(null);
+    setShowResetModal(true);
   };
 
-  const handleSocialGoogle = () => {
-    Alert.alert(
-      'Google Sign-In',
-      'Google Sign-In will be available in an upcoming update.'
-    );
+  // Submit Password Reset
+  const handlePerformResetPassword = async () => {
+    if (!resetEmail.trim() || !resetEmail.includes('@')) {
+      setResetError('Please enter a valid email address');
+      return;
+    }
+    if (!resetPasswordVal || resetPasswordVal.length < 6) {
+      setResetError('Password must be at least 6 characters');
+      return;
+    }
+
+    setResetLoading(true);
+    setResetError(null);
+    try {
+      if (onResetPassword) {
+        await onResetPassword({
+          email: resetEmail.trim(),
+          newPassword: resetPasswordVal,
+        });
+      }
+      setEmail(resetEmail.trim());
+      setPassword(resetPasswordVal);
+      setShowResetModal(false);
+      Alert.alert(
+        'Password Reset Successful',
+        'Your password has been updated! You can now log in.'
+      );
+    } catch (err) {
+      setResetError(err.message || 'Failed to reset password');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  // Open Google Sign-In Dialog
+  const handleOpenGoogleModal = () => {
+    setGoogleEmail(email || 'glow.prepper@gmail.com');
+    setGoogleName(name || 'Glow Prepper');
+    setGoogleError(null);
+    setCustomGoogleInput(false);
+    setShowGoogleModal(true);
+  };
+
+  // Submit Google Login
+  const handlePerformGoogleLogin = async (selectedEmail, selectedName) => {
+    const targetEmail = selectedEmail || googleEmail;
+    const targetName = selectedName || googleName || 'Glow Prepper';
+
+    if (!targetEmail.trim() || !targetEmail.includes('@')) {
+      setGoogleError('Please enter a valid Google email address');
+      return;
+    }
+
+    setGoogleLoading(true);
+    setGoogleError(null);
+    try {
+      if (onGoogleLogin) {
+        await onGoogleLogin({
+          email: targetEmail.trim(),
+          name: targetName.trim(),
+          googleId: 'g-' + Date.now(),
+        });
+      }
+      setShowGoogleModal(false);
+    } catch (err) {
+      setGoogleError(err.message || 'Google Sign-In failed');
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
   return (
@@ -392,7 +476,7 @@ export default function AuthVisionCard({
 
           {!isSignup && (
             <TouchableOpacity
-              onPress={handleForgotPassword}
+              onPress={handleOpenForgotPassword}
               activeOpacity={0.7}
               style={styles.forgotBtn}
             >
@@ -451,7 +535,7 @@ export default function AuthVisionCard({
           <Divider />
 
           {/* Social Google Button */}
-          <SocialButton onPress={handleSocialGoogle}>
+          <SocialButton onPress={handleOpenGoogleModal}>
             <Text style={styles.googleBadge}>G</Text>
             <Text style={styles.socialBtnText}>Continue with Google</Text>
           </SocialButton>
@@ -470,10 +554,220 @@ export default function AuthVisionCard({
         </View>
       </View>
 
-      {/* Helper text under card */}
-      <Text style={styles.bottomHint}>
-        Type an email and password to see live validation, strength meter, and the Continue button unlock.
-      </Text>
+      {/* ──────── MODAL 1: FORGOT / RESET PASSWORD ──────── */}
+      <Modal
+        visible={showResetModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowResetModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeaderRow}>
+              <Text style={styles.modalTitle}>Reset Password</Text>
+              <TouchableOpacity
+                onPress={() => setShowResetModal(false)}
+                style={styles.modalCloseBtn}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalSubtitle}>
+              Enter your account email and choose a new password.
+            </Text>
+
+            {Boolean(resetError) && (
+              <View style={styles.modalErrorBox}>
+                <Text style={styles.modalErrorText}>{resetError}</Text>
+              </View>
+            )}
+
+            <Field
+              icon="mail"
+              placeholder="EMAIL"
+              value={resetEmail}
+              onChangeText={(val) => {
+                setResetEmail(val);
+                if (resetError) setResetError(null);
+              }}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+
+            <Field
+              icon="lock"
+              placeholder="NEW PASSWORD (MIN. 6 CHARS)"
+              value={resetPasswordVal}
+              onChangeText={(val) => {
+                setResetPasswordVal(val);
+                if (resetError) setResetError(null);
+              }}
+              secureTextEntry={!showResetPassword}
+              rightAdornment={
+                <EyeToggle
+                  visible={showResetPassword}
+                  onPress={() => setShowResetPassword(!showResetPassword)}
+                />
+              }
+              autoCapitalize="none"
+            />
+
+            <TouchableOpacity
+              onPress={handlePerformResetPassword}
+              disabled={resetLoading || !resetEmail.trim() || resetPasswordVal.length < 6}
+              activeOpacity={0.88}
+              style={[
+                styles.ctaBtnWrapper,
+                resetPasswordVal.length >= 6 && styles.ctaBtnActiveShadow,
+                { marginTop: 10 },
+              ]}
+            >
+              <LinearGradient
+                colors={[AUTH_THEME.ctaFrom, AUTH_THEME.ctaTo]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.ctaBtn}
+              >
+                {resetLoading ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.ctaBtnText}>Update Password</Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ──────── MODAL 2: GOOGLE SIGN-IN ──────── */}
+      <Modal
+        visible={showGoogleModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowGoogleModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeaderRow}>
+              <View style={styles.googleBrandRow}>
+                <Text style={styles.googleBrandG}>G</Text>
+                <Text style={styles.modalTitle}>Sign in with Google</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowGoogleModal(false)}
+                style={styles.modalCloseBtn}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalSubtitle}>
+              Choose an account to continue to Clock-IT
+            </Text>
+
+            {Boolean(googleError) && (
+              <View style={styles.modalErrorBox}>
+                <Text style={styles.modalErrorText}>{googleError}</Text>
+              </View>
+            )}
+
+            {!customGoogleInput ? (
+              <>
+                {/* One-Tap Account Option */}
+                <TouchableOpacity
+                  onPress={() => handlePerformGoogleLogin(googleEmail, googleName)}
+                  activeOpacity={0.8}
+                  style={styles.googleAccountCard}
+                >
+                  <View style={styles.googleAvatarCircle}>
+                    <Text style={styles.googleAvatarText}>
+                      {(googleName || 'G')[0].toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={styles.googleAccountInfo}>
+                    <Text style={styles.googleAccountName}>
+                      {googleName || 'Glow Prepper'}
+                    </Text>
+                    <Text style={styles.googleAccountEmail}>
+                      {googleEmail || 'glow.prepper@gmail.com'}
+                    </Text>
+                  </View>
+                  <Text style={styles.googleAccountChevron}>›</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => setCustomGoogleInput(true)}
+                  activeOpacity={0.7}
+                  style={styles.googleSwitchLink}
+                >
+                  <Text style={styles.googleSwitchText}>
+                    Use another Google account
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                {/* Custom Google Account Entry */}
+                <Field
+                  icon="user"
+                  placeholder="NAME"
+                  value={googleName}
+                  onChangeText={(val) => {
+                    setGoogleName(val);
+                    if (googleError) setGoogleError(null);
+                  }}
+                  autoCapitalize="words"
+                />
+
+                <Field
+                  icon="mail"
+                  placeholder="GOOGLE EMAIL"
+                  value={googleEmail}
+                  onChangeText={(val) => {
+                    setGoogleEmail(val);
+                    if (googleError) setGoogleError(null);
+                  }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+
+                <TouchableOpacity
+                  onPress={() => handlePerformGoogleLogin()}
+                  disabled={googleLoading || !googleEmail.trim() || !googleEmail.includes('@')}
+                  activeOpacity={0.88}
+                  style={[styles.ctaBtnWrapper, styles.ctaBtnActiveShadow, { marginTop: 10 }]}
+                >
+                  <LinearGradient
+                    colors={['#4285F4', '#2B66C5']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.ctaBtn}
+                  >
+                    {googleLoading ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.ctaBtnText}>Sign In with Google</Text>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => setCustomGoogleInput(false)}
+                  activeOpacity={0.7}
+                  style={styles.googleSwitchLink}
+                >
+                  <Text style={styles.googleSwitchText}>
+                    Back to fast account picker
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -766,14 +1060,155 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     includeFontPadding: false,
   },
-  bottomHint: {
-    marginTop: 16,
+
+  // ──────── Modal Styles ────────
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(59, 38, 32, 0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalCard: {
+    width: '100%',
     maxWidth: 340,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    padding: 24,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 25px 50px -12px rgba(59, 38, 32, 0.35)',
+      },
+      default: {
+        shadowColor: '#3B2620',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.25,
+        shadowRadius: 20,
+        elevation: 10,
+      },
+    }),
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  modalTitle: {
+    fontFamily: THEME.fonts.displayBold,
+    fontSize: 20,
+    color: AUTH_THEME.ink,
+    includeFontPadding: false,
+  },
+  modalCloseBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#F7EDE6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCloseText: {
+    fontFamily: THEME.fonts.bodyBold,
+    fontSize: 14,
+    color: AUTH_THEME.inkSoft,
+    includeFontPadding: false,
+  },
+  modalSubtitle: {
+    fontFamily: THEME.fonts.bodyRegular,
+    fontSize: 12,
+    color: AUTH_THEME.inkSoft,
+    marginBottom: 16,
+    lineHeight: 16,
+    includeFontPadding: false,
+  },
+  modalErrorBox: {
+    backgroundColor: '#FFF0F3',
+    borderWidth: 1,
+    borderColor: '#FFCCD6',
+    borderRadius: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    marginBottom: 12,
+  },
+  modalErrorText: {
+    fontFamily: THEME.fonts.bodyMedium,
+    fontSize: 11.5,
+    color: AUTH_THEME.error,
     textAlign: 'center',
+    includeFontPadding: false,
+  },
+
+  // Google Modal specific styles
+  googleBrandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  googleBrandG: {
+    fontFamily: THEME.fonts.bodyBold,
+    fontSize: 20,
+    color: '#4285F4',
+    includeFontPadding: false,
+  },
+  googleAccountCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FDF7F2',
+    borderWidth: 1.2,
+    borderColor: AUTH_THEME.line,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+  },
+  googleAvatarCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#D98853',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  googleAvatarText: {
+    fontFamily: THEME.fonts.bodyBold,
+    fontSize: 15,
+    color: '#FFFFFF',
+    includeFontPadding: false,
+  },
+  googleAccountInfo: {
+    flex: 1,
+  },
+  googleAccountName: {
+    fontFamily: THEME.fonts.bodyBold,
+    fontSize: 13,
+    color: AUTH_THEME.ink,
+    includeFontPadding: false,
+  },
+  googleAccountEmail: {
     fontFamily: THEME.fonts.bodyRegular,
     fontSize: 11.5,
     color: AUTH_THEME.muted,
-    lineHeight: 18,
+    includeFontPadding: false,
+  },
+  googleAccountChevron: {
+    fontFamily: THEME.fonts.bodyBold,
+    fontSize: 20,
+    color: AUTH_THEME.terracotta,
+    marginLeft: 8,
+    includeFontPadding: false,
+  },
+  googleSwitchLink: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  googleSwitchText: {
+    fontFamily: THEME.fonts.bodySemiBold,
+    fontSize: 12,
+    color: AUTH_THEME.terracotta,
+    textDecorationLine: 'underline',
     includeFontPadding: false,
   },
 });
