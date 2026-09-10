@@ -42,6 +42,7 @@ import BodyCareModal from './src/components/modals/BodyCareModal';
 import CalendarHistoryView from './src/components/CalendarHistoryView';
 import ProfileSettingsView from './src/components/ProfileSettingsView';
 import FloatingLabelInput from './src/components/FloatingLabelInput';
+import AuthVisionCard, { AUTH_THEME } from './src/components/AuthVisionCard';
 import {
   createUser,
   registerUser,
@@ -1018,209 +1019,78 @@ function AppContent({ initialSession }) {
           </Animated.View>
         )}
 
-        {/* ──────── 1B. SIGN UP SCREEN (AUTH FIRST) ──────── */}
+        {/* ──────── 1B. SIGN UP SCREEN (AUTH VISION REDESIGN) ──────── */}
         {step === 'signup' && (
-          <View style={styles.innerContainer}>
-            <View style={styles.navHeader}>
-              <TouchableOpacity
-                onPress={() => {
+          <View style={styles.authScreenContainer}>
+            <LinearGradient
+              colors={[AUTH_THEME.bgTop, '#FFFFFF', AUTH_THEME.bgBottom]}
+              locations={[0, 0.45, 1]}
+              style={StyleSheet.absoluteFillObject}
+            />
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.authVisionScrollContent}
+              keyboardShouldPersistTaps="handled"
+            >
+              <AuthVisionCard
+                mode="signup"
+                name={authName}
+                setName={setAuthName}
+                email={authEmail}
+                setEmail={setAuthEmail}
+                password={authPassword}
+                setPassword={setAuthPassword}
+                loading={loading}
+                authError={authError}
+                setAuthError={setAuthError}
+                onBack={() => {
                   setAuthError(null);
                   setStep('splash');
                 }}
-                style={styles.backButton}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.backButtonText}>‹</Text>
-              </TouchableOpacity>
-              <View style={styles.navDots}>
-                <View style={[styles.navDot, styles.navDotActive]} />
-                <View style={styles.navDot} />
-              </View>
-            </View>
-
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.authScrollContent}
-              keyboardShouldPersistTaps="handled"
-            >
-              <View style={styles.authHeaderCenter}>
-                <Text style={styles.authHeadline}>Join Clock-IT</Text>
-              </View>
-
-              {Boolean(authError) && (
-                <View style={styles.authErrorBox}>
-                  <Text style={styles.authErrorText}>{authError}</Text>
-                </View>
-              )}
-
-              <View style={styles.authCard}>
-                <FloatingLabelInput
-                  label="Name"
-                  value={authName}
-                  onChangeText={(val) => {
-                    setAuthName(val);
-                    if (authError) setAuthError(null);
-                  }}
-                  autoCapitalize="words"
-                  autoCorrect={false}
-                />
-
-                <FloatingLabelInput
-                  label="Email"
-                  value={authEmail}
-                  onChangeText={(val) => {
-                    setAuthEmail(val);
-                    if (authError) setAuthError(null);
-                  }}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-
-                <FloatingLabelInput
-                  label="Password"
-                  value={authPassword}
-                  onChangeText={(val) => {
-                    setAuthPassword(val);
-                    if (authError) setAuthError(null);
-                  }}
-                  helperText="Min. 6 characters"
-                  secureTextEntry={!showPassword}
-                  showPasswordToggle={true}
-                  onTogglePassword={() => setShowPassword(!showPassword)}
-                  autoCapitalize="none"
-                />
-
-                <TouchableOpacity
-                  activeOpacity={0.88}
-                  onPress={handleSignUp}
-                  disabled={loading}
-                  style={[
-                    styles.authSubmitBtnWrapper,
-                    (!authName.trim() || !authEmail.trim() || authPassword.length < 6) && { opacity: 0.5 },
-                  ]}
-                >
-                  <LinearGradient
-                    colors={[THEME.peachDeep, THEME.pinkDeep]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.authSubmitBtn}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="#FFFFFF" size="small" />
-                    ) : (
-                      <Text style={styles.authSubmitBtnText}>Continue</Text>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => {
+                onSubmit={handleSignUp}
+                onSwitchMode={() => {
                   setAuthError(null);
                   setStep('login');
                 }}
-                style={styles.authSwitchBtn}
-              >
-                <Text style={styles.authSwitchHighlight}>Log in</Text>
-              </TouchableOpacity>
+              />
             </ScrollView>
           </View>
         )}
 
-        {/* ──────── 1C. LOG IN SCREEN ──────── */}
+        {/* ──────── 1C. LOG IN SCREEN (AUTH VISION REDESIGN) ──────── */}
         {step === 'login' && (
-          <View style={styles.innerContainer}>
-            <View style={styles.navHeader}>
-              <TouchableOpacity
-                onPress={() => {
+          <View style={styles.authScreenContainer}>
+            <LinearGradient
+              colors={[AUTH_THEME.bgTop, '#FFFFFF', AUTH_THEME.bgBottom]}
+              locations={[0, 0.45, 1]}
+              style={StyleSheet.absoluteFillObject}
+            />
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.authVisionScrollContent}
+              keyboardShouldPersistTaps="handled"
+            >
+              <AuthVisionCard
+                mode="login"
+                name={authName}
+                setName={setAuthName}
+                email={authEmail}
+                setEmail={setAuthEmail}
+                password={authPassword}
+                setPassword={setAuthPassword}
+                loading={loading}
+                authError={authError}
+                setAuthError={setAuthError}
+                onBack={() => {
                   setAuthError(null);
                   setStep('splash');
                 }}
-                style={styles.backButton}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.backButtonText}>‹</Text>
-              </TouchableOpacity>
-              <View style={{ width: 36 }} />
-            </View>
-
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.authScrollContent}
-              keyboardShouldPersistTaps="handled"
-            >
-              <View style={styles.authHeaderCenter}>
-                <Text style={styles.authHeadline}>Welcome back</Text>
-              </View>
-
-              {Boolean(authError) && (
-                <View style={styles.authErrorBox}>
-                  <Text style={styles.authErrorText}>{authError}</Text>
-                </View>
-              )}
-
-              <View style={styles.authCard}>
-                <FloatingLabelInput
-                  label="Email"
-                  value={authEmail}
-                  onChangeText={(val) => {
-                    setAuthEmail(val);
-                    if (authError) setAuthError(null);
-                  }}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-
-                <FloatingLabelInput
-                  label="Password"
-                  value={authPassword}
-                  onChangeText={(val) => {
-                    setAuthPassword(val);
-                    if (authError) setAuthError(null);
-                  }}
-                  secureTextEntry={!showPassword}
-                  showPasswordToggle={true}
-                  onTogglePassword={() => setShowPassword(!showPassword)}
-                  autoCapitalize="none"
-                />
-
-                <TouchableOpacity
-                  activeOpacity={0.88}
-                  onPress={handleLogIn}
-                  disabled={loading}
-                  style={[
-                    styles.authSubmitBtnWrapper,
-                    (!authEmail.trim() || !authPassword) && { opacity: 0.5 },
-                  ]}
-                >
-                  <LinearGradient
-                    colors={[THEME.peachDeep, THEME.pinkDeep]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.authSubmitBtn}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="#FFFFFF" size="small" />
-                    ) : (
-                      <Text style={styles.authSubmitBtnText}>Log In</Text>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => {
+                onSubmit={handleLogIn}
+                onSwitchMode={() => {
                   setAuthError(null);
                   setStep('signup');
                 }}
-                style={styles.authSwitchBtn}
-              >
-                <Text style={styles.authSwitchHighlight}>Create account</Text>
-              </TouchableOpacity>
+              />
             </ScrollView>
           </View>
         )}
@@ -2519,5 +2389,17 @@ const styles = StyleSheet.create({
     fontFamily: THEME.fonts.bodyBold,
     color: THEME.roseGold,
     textDecorationLine: 'underline',
+  },
+  authScreenContainer: {
+    flex: 1,
+    width: '100%',
+    position: 'relative',
+  },
+  authVisionScrollContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 28,
+    paddingHorizontal: 8,
   },
 });
