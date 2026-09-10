@@ -1032,7 +1032,6 @@ function AppContent({ initialSession }) {
               >
                 <Text style={styles.backButtonText}>‹</Text>
               </TouchableOpacity>
-              <Text style={styles.navWordmark}>Clock-IT</Text>
               <View style={styles.navDots}>
                 <View style={[styles.navDot, styles.navDotActive]} />
                 <View style={styles.navDot} />
@@ -1045,7 +1044,6 @@ function AppContent({ initialSession }) {
               keyboardShouldPersistTaps="handled"
             >
               <View style={styles.authHeaderCenter}>
-                <BowIcon size={38} style={{ marginBottom: 8 }} />
                 <Text style={styles.authHeadline}>Join Clock-IT</Text>
               </View>
 
@@ -1145,7 +1143,6 @@ function AppContent({ initialSession }) {
               >
                 <Text style={styles.backButtonText}>‹</Text>
               </TouchableOpacity>
-              <Text style={styles.navWordmark}>Clock-IT</Text>
               <View style={{ width: 36 }} />
             </View>
 
@@ -1155,7 +1152,6 @@ function AppContent({ initialSession }) {
               keyboardShouldPersistTaps="handled"
             >
               <View style={styles.authHeaderCenter}>
-                <HeroClock size={68} />
                 <Text style={styles.authHeadline}>Welcome back</Text>
               </View>
 
@@ -2451,14 +2447,13 @@ const styles = StyleSheet.create({
   },
   authHeaderCenter: {
     alignItems: 'center',
-    marginTop: 18,
+    marginTop: 20,
     marginBottom: 8,
   },
   authHeadline: {
     fontFamily: THEME.fonts.displayBold,
     fontSize: 28,
     color: THEME.ink,
-    marginTop: 10,
     letterSpacing: 0.3,
   },
   authErrorBox: {
