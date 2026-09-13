@@ -170,7 +170,8 @@ public class AuthService {
             newUser.setEmail(normalizedEmail);
             String displayName = request.getName();
             if (displayName == null || displayName.isBlank()) {
-                displayName = "Glow Prepper";
+                int atIdx = normalizedEmail.indexOf('@');
+                displayName = atIdx > 0 ? normalizedEmail.substring(0, atIdx) : "User";
             }
             newUser.setName(displayName.trim());
             newUser.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString()));

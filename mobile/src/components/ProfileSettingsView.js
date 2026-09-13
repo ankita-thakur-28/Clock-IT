@@ -12,7 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { THEME } from '../constants/theme';
 
 export default function ProfileSettingsView({
-  name = 'Glow Prepper',
+  name = 'User',
   email = '',
   milestoneType = 'Milestone',
   milestoneDate,

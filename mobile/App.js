@@ -339,7 +339,7 @@ function AppContent({ initialSession }) {
       if (data && data.user) {
         await saveActiveUser(data.user);
         setUserData(data.user);
-        setName(data.user.name || 'Glow Prepper');
+        setName(data.user.name || '');
         if (data.user.milestoneDate) setMilestoneDate(data.user.milestoneDate);
         if (data.user.milestoneType) setMilestoneType(data.user.milestoneType);
         if (data.user.goal) setGoal(data.user.goal);
@@ -365,7 +365,7 @@ function AppContent({ initialSession }) {
     try {
       const data = await googleLogin({
         email: email.trim(),
-        name: gName || 'Glow Prepper',
+        name: gName || '',
         googleId,
         avatarUrl,
         idToken,
@@ -377,7 +377,7 @@ function AppContent({ initialSession }) {
       if (data && data.user) {
         await saveActiveUser(data.user);
         setUserData(data.user);
-        setName(data.user.name || 'Glow Prepper');
+        setName(data.user.name || '');
         if (data.user.milestoneDate) setMilestoneDate(data.user.milestoneDate);
         if (data.user.milestoneType) setMilestoneType(data.user.milestoneType);
         if (data.user.goal) setGoal(data.user.goal);
@@ -424,7 +424,7 @@ function AppContent({ initialSession }) {
 
   const handleSubmit = async () => {
     setLoading(true);
-    const resolvedName = name.trim() || 'Glow Prepper';
+    const resolvedName = name.trim() || (authEmail ? authEmail.split('@')[0] : 'User');
     const days = calculatePreviewDays();
     let phase = 'FOUNDATION';
     let phaseTitle = 'Foundation Phase';
@@ -994,7 +994,7 @@ function AppContent({ initialSession }) {
   };
 
   const renderScreenContent = () => {
-    const activeUserName = dashboard?.user?.name || userData?.name || name || 'Glow Prepper';
+    const activeUserName = dashboard?.user?.name || userData?.name || name || 'User';
     const activeGoal = dashboard?.user?.goal || userData?.goal || goal || 'Tone & Sculpt';
     const getWorkoutDetail = (userGoal) => {
       if (userGoal === 'Glow & Energy') return 'Low-Impact Cardio & Radiance · 30m';

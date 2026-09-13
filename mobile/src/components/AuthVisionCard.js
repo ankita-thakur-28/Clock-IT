@@ -305,7 +305,6 @@ export default function AuthVisionCard({
   const [showGoogleModal, setShowGoogleModal] = useState(false);
   const [googleEmail, setGoogleEmail] = useState('');
   const [googleName, setGoogleName] = useState('');
-  const [customGoogleInput, setCustomGoogleInput] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState(null);
 
@@ -387,19 +386,18 @@ export default function AuthVisionCard({
 
   // Open Google Sign-In Dialog
   const handleOpenGoogleModal = () => {
-    setGoogleEmail(email || 'glow.prepper@gmail.com');
-    setGoogleName(name || 'Glow Prepper');
+    setGoogleEmail(email || '');
+    setGoogleName(name || '');
     setGoogleError(null);
-    setCustomGoogleInput(false);
     setShowGoogleModal(true);
   };
 
   // Submit Google Login
-  const handlePerformGoogleLogin = async (selectedEmail, selectedName) => {
-    const targetEmail = selectedEmail || googleEmail;
-    const targetName = selectedName || googleName || 'Glow Prepper';
+  const handlePerformGoogleLogin = async () => {
+    const targetEmail = googleEmail.trim();
+    const targetName = googleName.trim() || (targetEmail ? targetEmail.split('@')[0] : 'User');
 
-    if (!targetEmail.trim() || !targetEmail.includes('@')) {
+    if (!targetEmail || !targetEmail.includes('@')) {
       setGoogleError('Please enter a valid Google email address');
       return;
     }
@@ -409,8 +407,8 @@ export default function AuthVisionCard({
     try {
       if (onGoogleLogin) {
         await onGoogleLogin({
-          email: targetEmail.trim(),
-          name: targetName.trim(),
+          email: targetEmail,
+          name: targetName,
           googleId: 'g-' + Date.now(),
         });
       }
@@ -751,7 +749,7 @@ export default function AuthVisionCard({
             </View>
 
             <Text style={styles.modalSubtitle}>
-              Choose an account to continue to Clock-IT
+              Enter your Google account details to continue to Clock-IT
             </Text>
 
             {Boolean(googleError) && (
@@ -760,97 +758,49 @@ export default function AuthVisionCard({
               </View>
             )}
 
-            {!customGoogleInput ? (
-              <>
-                {/* One-Tap Account Option */}
-                <TouchableOpacity
-                  onPress={() => handlePerformGoogleLogin(googleEmail, googleName)}
-                  activeOpacity={0.8}
-                  style={styles.googleAccountCard}
-                >
-                  <View style={styles.googleAvatarCircle}>
-                    <Text style={styles.googleAvatarText}>
-                      {(googleName || 'G')[0].toUpperCase()}
-                    </Text>
-                  </View>
-                  <View style={styles.googleAccountInfo}>
-                    <Text style={styles.googleAccountName}>
-                      {googleName || 'Glow Prepper'}
-                    </Text>
-                    <Text style={styles.googleAccountEmail}>
-                      {googleEmail || 'glow.prepper@gmail.com'}
-                    </Text>
-                  </View>
-                  <Text style={styles.googleAccountChevron}>›</Text>
-                </TouchableOpacity>
+            {/* Google Account Entry */}
+            <Field
+              icon="user"
+              placeholder="NAME (OPTIONAL)"
+              value={googleName}
+              onChangeText={(val) => {
+                setGoogleName(val);
+                if (googleError) setGoogleError(null);
+              }}
+              autoCapitalize="words"
+            />
 
-                <TouchableOpacity
-                  onPress={() => setCustomGoogleInput(true)}
-                  activeOpacity={0.7}
-                  style={styles.googleSwitchLink}
-                >
-                  <Text style={styles.googleSwitchText}>
-                    Use another Google account
-                  </Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                {/* Custom Google Account Entry */}
-                <Field
-                  icon="user"
-                  placeholder="NAME"
-                  value={googleName}
-                  onChangeText={(val) => {
-                    setGoogleName(val);
-                    if (googleError) setGoogleError(null);
-                  }}
-                  autoCapitalize="words"
-                />
+            <Field
+              icon="mail"
+              placeholder="GOOGLE EMAIL"
+              value={googleEmail}
+              onChangeText={(val) => {
+                setGoogleEmail(val);
+                if (googleError) setGoogleError(null);
+              }}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
 
-                <Field
-                  icon="mail"
-                  placeholder="GOOGLE EMAIL"
-                  value={googleEmail}
-                  onChangeText={(val) => {
-                    setGoogleEmail(val);
-                    if (googleError) setGoogleError(null);
-                  }}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-
-                <TouchableOpacity
-                  onPress={() => handlePerformGoogleLogin()}
-                  disabled={googleLoading || !googleEmail.trim() || !googleEmail.includes('@')}
-                  activeOpacity={0.88}
-                  style={[styles.ctaBtnWrapper, styles.ctaBtnActiveShadow, { marginTop: 10 }]}
-                >
-                  <LinearGradient
-                    colors={['#4285F4', '#2B66C5']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.ctaBtn}
-                  >
-                    {googleLoading ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <Text style={styles.ctaBtnText}>Sign In with Google</Text>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => setCustomGoogleInput(false)}
-                  activeOpacity={0.7}
-                  style={styles.googleSwitchLink}
-                >
-                  <Text style={styles.googleSwitchText}>
-                    Back to fast account picker
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
+            <TouchableOpacity
+              onPress={handlePerformGoogleLogin}
+              disabled={googleLoading || !googleEmail.trim() || !googleEmail.includes('@')}
+              activeOpacity={0.88}
+              style={[styles.ctaBtnWrapper, styles.ctaBtnActiveShadow, { marginTop: 10 }]}
+            >
+              <LinearGradient
+                colors={['#4285F4', '#2B66C5']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.ctaBtn}
+              >
+                {googleLoading ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.ctaBtnText}>Sign In with Google</Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
