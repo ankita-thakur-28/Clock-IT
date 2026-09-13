@@ -1,6 +1,7 @@
 package com.clockit.controller;
 
 import com.clockit.dto.AuthResponse;
+import com.clockit.dto.ForgotPasswordRequest;
 import com.clockit.dto.GoogleAuthRequest;
 import com.clockit.dto.LoginRequest;
 import com.clockit.dto.RegisterRequest;
@@ -61,9 +62,26 @@ public class AuthController {
 
     @PutMapping({"/api/v1/users/{id}/milestone", "/api/users/{id}/milestone"})
     public ResponseEntity<?> updateMilestone(@PathVariable Long id,
-                                             @Valid @RequestBody UpdateMilestoneRequest request) {
+                                             @Valid @RequestBody UpdateMilestoneRequest request,
+                                             Authentication authentication) {
+        if (authentication != null && authentication.getCredentials() instanceof Long) {
+            Long authUserId = (Long) authentication.getCredentials();
+            if (!authUserId.equals(id)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Access denied: cannot update another user's milestone"));
+            }
+        }
         try {
             UserResponse response = authService.updateMilestone(id, request);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    @PostMapping("/api/auth/forgot-password")
+    public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        try {
+            Map<String, Object> response = authService.requestPasswordReset(request);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));

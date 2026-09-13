@@ -10,6 +10,10 @@ public class ResetPasswordRequest {
     @Email(message = "Valid email is required")
     private String email;
 
+    @NotBlank(message = "Verification code (OTP) is required")
+    @Size(min = 6, max = 6, message = "Verification code must be 6 digits")
+    private String otp;
+
     @NotBlank(message = "New password is required")
     @Size(min = 6, message = "New password must be at least 6 characters")
     private String newPassword;
@@ -17,8 +21,9 @@ public class ResetPasswordRequest {
     public ResetPasswordRequest() {
     }
 
-    public ResetPasswordRequest(String email, String newPassword) {
+    public ResetPasswordRequest(String email, String otp, String newPassword) {
         this.email = email;
+        this.otp = otp;
         this.newPassword = newPassword;
     }
 
@@ -28,6 +33,14 @@ public class ResetPasswordRequest {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getOtp() {
+        return otp;
+    }
+
+    public void setOtp(String otp) {
+        this.otp = otp;
     }
 
     public String getNewPassword() {

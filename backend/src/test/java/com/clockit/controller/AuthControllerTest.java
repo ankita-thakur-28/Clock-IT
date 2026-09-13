@@ -151,9 +151,24 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/auth/reset-password returns 200 with success message")
+    @DisplayName("POST /api/auth/forgot-password returns 200 with code sent message")
+    void testForgotPasswordSuccess() throws Exception {
+        com.clockit.dto.ForgotPasswordRequest request = new com.clockit.dto.ForgotPasswordRequest("test@clockit.app");
+        when(authService.requestPasswordReset(any(com.clockit.dto.ForgotPasswordRequest.class)))
+                .thenReturn(java.util.Map.of("message", "Verification code sent to test@clockit.app", "expiresInMinutes", 10));
+
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Verification code sent to test@clockit.app"))
+                .andExpect(jsonPath("$.expiresInMinutes").value(10));
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/reset-password with valid OTP returns 200 with success message")
     void testResetPasswordSuccess() throws Exception {
-        ResetPasswordRequest request = new ResetPasswordRequest("test@clockit.app", "newSecret123");
+        ResetPasswordRequest request = new ResetPasswordRequest("test@clockit.app", "123456", "newSecret123");
 
         mockMvc.perform(post("/api/auth/reset-password")
                         .contentType(MediaType.APPLICATION_JSON)

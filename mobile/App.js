@@ -48,7 +48,9 @@ import {
   registerUser,
   loginUser,
   googleLogin,
+  forgotPassword,
   resetPassword,
+  getAuthProfile,
   updateUserMilestone,
   fetchDashboard,
   updateTodayLog,
@@ -157,6 +159,31 @@ function AppContent({ initialSession }) {
     if (activeUid) {
       loadDashboardData(activeUid);
     }
+
+    // Verify stored session with backend to prevent stale / invalid token state
+    async function verifyAndHydrateSession() {
+      const token = await getAuthToken();
+      if (token) {
+        try {
+          const profile = await getAuthProfile();
+          if (profile && profile.id) {
+            setUserData(profile);
+            await saveActiveUser(profile);
+            if (profile.name) setName(profile.name);
+            if (profile.milestoneDate) setMilestoneDate(profile.milestoneDate);
+            if (profile.milestoneType) setMilestoneType(profile.milestoneType);
+            if (profile.goal) setGoal(profile.goal);
+          }
+        } catch (err) {
+          console.warn('Stored session invalid or expired, resetting to login:', err);
+          await clearAuthToken();
+          await clearActiveUser();
+          setUserData(null);
+          setStep('splash');
+        }
+      }
+    }
+    verifyAndHydrateSession();
   }, []);
 
   const normalizeDashboard = (data) => {
@@ -332,7 +359,7 @@ function AppContent({ initialSession }) {
     }
   };
 
-  const handleGoogleLogin = async ({ email, name: gName, googleId, avatarUrl }) => {
+  const handleGoogleLogin = async ({ email, name: gName, googleId, avatarUrl, idToken }) => {
     setAuthError(null);
     setLoading(true);
     try {
@@ -341,6 +368,7 @@ function AppContent({ initialSession }) {
         name: gName || 'Glow Prepper',
         googleId,
         avatarUrl,
+        idToken,
       });
 
       if (data && data.token) {
@@ -362,29 +390,20 @@ function AppContent({ initialSession }) {
         setStep('setup');
       }
     } catch (err) {
-      console.warn('Google login error, falling back to local session:', err);
-      const fallbackUser = {
-        id: Date.now(),
-        name: gName || 'Glow Prepper',
-        email: email.trim().toLowerCase(),
-      };
-      await saveActiveUser(fallbackUser);
-      setUserData(fallbackUser);
-      setName(fallbackUser.name);
-      setStep('setup');
+      console.warn('Google login error:', err);
+      setAuthError(err.message || 'Google Sign-In failed');
+      throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResetPassword = async ({ email, newPassword }) => {
-    try {
-      const res = await resetPassword({ email, newPassword });
-      return res;
-    } catch (err) {
-      console.warn('Reset password error, falling back to local success:', err);
-      return { message: 'Password successfully reset' };
-    }
+  const handleForgotPassword = async ({ email }) => {
+    return await forgotPassword({ email: email.trim() });
+  };
+
+  const handleResetPassword = async ({ email, otp, newPassword }) => {
+    return await resetPassword({ email: email.trim(), otp: otp.trim(), newPassword });
   };
 
   const handleSignOut = async () => {
@@ -1106,6 +1125,7 @@ function AppContent({ initialSession }) {
                 }}
                 onSubmit={handleSignUp}
                 onGoogleLogin={handleGoogleLogin}
+                onForgotPassword={handleForgotPassword}
                 onResetPassword={handleResetPassword}
                 onSwitchMode={() => {
                   setAuthError(null);
@@ -1146,6 +1166,7 @@ function AppContent({ initialSession }) {
                 }}
                 onSubmit={handleLogIn}
                 onGoogleLogin={handleGoogleLogin}
+                onForgotPassword={handleForgotPassword}
                 onResetPassword={handleResetPassword}
                 onSwitchMode={() => {
                   setAuthError(null);

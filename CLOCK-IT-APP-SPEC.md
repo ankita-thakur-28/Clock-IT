@@ -1,7 +1,11 @@
-# CLOCK-IT — Master Product Specification & Architecture Document
+# CLOCK-IT — Master Product Specification & Architecture Document (v1 Archive)
+
+> [!NOTE]
+> **SUPERSEDED BY [CLOCK-IT-VISION-2.0.md](CLOCK-IT-VISION-2.0.md) & [ADR 0002](docs/adr/0002-clock-it-2-architecture-and-safety-guardrails.md)**  
+> The "AI Diet Planner" and restrictive diet/calorie tracking described below have been officially removed from the product scope. CLOCK-IT 2.0 focuses strictly on milestone countdown, skincare, body care, phase-adaptive movement, and wellness habits.
 
 > *"Your glow, on the clock."*  
-> A luxury, women-only event-prep companion combining daily self-care and fitness checklists with an AI-driven diet planner and personal trainer.
+
 
 ---
 

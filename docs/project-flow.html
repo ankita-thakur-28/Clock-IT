@@ -114,14 +114,13 @@ flowchart LR
 <tr><td>0</td><td>Hello Countdown — user + milestone + server-computed countdown/phase</td><td>✅ Done</td></tr>
 <tr><td>1</td><td>Daily Checklist — DailyLog habit loop</td><td>✅ Done</td></tr>
 <tr><td>2</td><td>Calendar Home — calendar navigation of log history</td><td>✅ Done</td></tr>
-<tr><td>3</td><td>Real Users — Spring Security + JWT auth</td><td>✅ Done (latest commit)</td></tr>
-<tr><td>4</td><td>AI Diet — Claude meal plans + safety guardrails</td><td>⬜ Next</td></tr>
-<tr><td>5</td><td>AI Workouts + phase awareness</td><td>⬜</td></tr>
-<tr><td>6</td><td>Progress / Analytics — streaks, adherence charts</td><td>⬜</td></tr>
-<tr><td>7</td><td>Equipment Scanner — vision slice</td><td>⬜</td></tr>
+<tr><td>3</td><td>Real Users — Spring Security + JWT auth & multi-tenant route protection</td><td>✅ Done</td></tr>
+<tr><td>4</td><td>AI Workouts — Phase-adaptive movement & routines</td><td>⬜ Next</td></tr>
+<tr><td>5</td><td>Progress / Analytics — streaks, adherence charts</td><td>⬜</td></tr>
+<tr><td>6</td><td>Equipment Scanner — vision slice</td><td>⬜</td></tr>
 </table>
 
-<div class="note"><strong>⚠️ Known gap:</strong> <code>SecurityConfig</code> currently permits all of <code>/api/users/**</code> and <code>/api/v1/users/**</code> (auth optional), and user IDs are passed in the URL path rather than derived from the JWT — worth tightening in a future MVP.</div>
+<div class="note"><strong>🔒 Security Status:</strong> Multi-tenant authorization is hardened — <code>SecurityConfig</code> enforces authentication on all user & dashboard endpoints, and controller endpoints verify that the authenticated token subject matches the targeted resource owner.</div>
 
 <script>mermaid.initialize({ startOnLoad: true, theme: 'neutral', flowchart: { curve: 'basis' } });</script>
 </body>

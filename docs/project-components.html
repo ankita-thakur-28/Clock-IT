@@ -79,7 +79,7 @@
     <b style="color:#6ea8ff">countdown</b> the user sets — e.g. “my wedding in 90 days”.
   </p>
   <div class="note good" style="max-width:760px;">
-    <b>Where we are:</b> MVP 3 of 8 shipped — real users with JWT auth. Next up: AI Diet Planner.
+    <b>Where we are:</b> MVP 3 of 6 shipped — real users with JWT auth & security hardening. Next up: AI Workouts & Movement.
   </div>
   <p class="talks" style="max-width:760px;">Navigate with <b>← →</b> arrow keys or the buttons. Each slide = one component: what it is, where it lives, who it talks to.</p>
 </section>
@@ -402,17 +402,16 @@
 <!-- 13 · ROADMAP -->
 <section class="slide">
   <div class="kicker">Slide 13</div>
-  <h2>Roadmap — 8 vertical-slice MVPs</h2>
+  <h2>Roadmap — 6 vertical-slice MVPs</h2>
   <p style="color:#9aa1b2;">Each MVP is thin, full-stack and deployable — ship the slice, then build the next.</p>
   <div class="road">
     <div class="mile done"><div class="n">0 ✓</div><div class="d">Hello Countdown<br>milestone + phase engine</div></div>
     <div class="mile done"><div class="n">1 ✓</div><div class="d">Daily Checklist<br>DailyLog habit loop</div></div>
     <div class="mile done"><div class="n">2 ✓</div><div class="d">Calendar Home<br>log history</div></div>
     <div class="mile done"><div class="n">3 ✓</div><div class="d">Real Users<br>Spring Security + JWT</div></div>
-    <div class="mile next"><div class="n">4 ▶</div><div class="d">AI Diet<br>Claude meal plans + safety guardrails</div></div>
-    <div class="mile"><div class="n">5</div><div class="d">AI Workouts<br>+ phase awareness</div></div>
-    <div class="mile"><div class="n">6</div><div class="d">Progress<br>analytics &amp; adherence</div></div>
-    <div class="mile"><div class="n">7</div><div class="d">Equipment Scanner<br>vision slice</div></div>
+    <div class="mile next"><div class="n">4 ▶</div><div class="d">AI Workouts<br>Phase-adaptive movement</div></div>
+    <div class="mile"><div class="n">5</div><div class="d">Progress<br>analytics &amp; adherence</div></div>
+    <div class="mile"><div class="n">6</div><div class="d">Equipment Scanner<br>vision slice</div></div>
   </div>
   <div class="note" style="max-width:900px;"><b>Deferred to v2.0:</b> Glow Feed (community), AI coach check-ins, push notifications — see CLOCK-IT-VISION-2.0.md.</div>
 </section>
@@ -422,7 +421,7 @@
   <div class="kicker">Slide 14</div>
   <h2>30-Second Pitch</h2>
   <div class="note good" style="font-size:22px; line-height:1.7; max-width:960px; margin-top:10px;">
-    “Clock-IT adapts your self-care routine to <b>your deadline</b>. You set a milestone; the backend computes a countdown and a phase — Foundation, Build, Refine, Arrival — and shapes each day's checklist accordingly. The Expo app works fully offline with local-first logging; the Spring Boot API owns the rules; Postgres is the source of truth. Four MVPs are shipped including JWT auth; the AI diet planner is next, gated by a server-side safety-guardrail layer.”
+    “Clock-IT adapts your self-care routine to <b>your deadline</b>. You set a milestone; the backend computes a countdown and a phase — Foundation, Build, Refine, Arrival — and shapes each day's checklist accordingly. The Expo app works fully offline with local-first logging; the Spring Boot API owns the rules; Postgres is the source of truth. Four MVPs are shipped including JWT auth; phase-adaptive AI workouts and habit analytics are next.”
   </div>
   <div class="cols" style="margin-top:34px;">
     <div class="col"><ul>

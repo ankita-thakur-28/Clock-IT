@@ -283,6 +283,7 @@ export default function AuthVisionCard({
   onBack,
   onSubmit,
   onGoogleLogin,
+  onForgotPassword,
   onResetPassword,
   onSwitchMode,
 }) {
@@ -290,9 +291,11 @@ export default function AuthVisionCard({
   const [showPassword, setShowPassword] = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
 
-  // Forgot Password Modal State
+  // Forgot Password Modal State (2-step OTP)
   const [showResetModal, setShowResetModal] = useState(false);
+  const [resetStep, setResetStep] = useState('request'); // 'request' | 'verify'
   const [resetEmail, setResetEmail] = useState('');
+  const [resetOtp, setResetOtp] = useState('');
   const [resetPasswordVal, setResetPasswordVal] = useState('');
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
@@ -319,15 +322,38 @@ export default function AuthVisionCard({
   // Open Forgot Password Dialog
   const handleOpenForgotPassword = () => {
     setResetEmail(email || '');
+    setResetOtp('');
     setResetPasswordVal('');
+    setResetStep('request');
     setResetError(null);
     setShowResetModal(true);
   };
 
-  // Submit Password Reset
-  const handlePerformResetPassword = async () => {
+  // Step 1: Request 6-digit OTP
+  const handleRequestResetOtp = async () => {
     if (!resetEmail.trim() || !resetEmail.includes('@')) {
       setResetError('Please enter a valid email address');
+      return;
+    }
+
+    setResetLoading(true);
+    setResetError(null);
+    try {
+      if (onForgotPassword) {
+        await onForgotPassword({ email: resetEmail.trim() });
+      }
+      setResetStep('verify');
+    } catch (err) {
+      setResetError(err.message || 'Failed to send verification code');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  // Step 2: Verify OTP and Set New Password
+  const handlePerformResetPassword = async () => {
+    if (!resetOtp.trim() || resetOtp.trim().length !== 6) {
+      setResetError('Please enter the 6-digit verification code');
       return;
     }
     if (!resetPasswordVal || resetPasswordVal.length < 6) {
@@ -341,6 +367,7 @@ export default function AuthVisionCard({
       if (onResetPassword) {
         await onResetPassword({
           email: resetEmail.trim(),
+          otp: resetOtp.trim(),
           newPassword: resetPasswordVal,
         });
       }
@@ -349,7 +376,7 @@ export default function AuthVisionCard({
       setShowResetModal(false);
       Alert.alert(
         'Password Reset Successful',
-        'Your password has been updated! You can now log in.'
+        'Your password has been updated! You can now log in with your new password.'
       );
     } catch (err) {
       setResetError(err.message || 'Failed to reset password');
@@ -564,7 +591,9 @@ export default function AuthVisionCard({
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>Reset Password</Text>
+              <Text style={styles.modalTitle}>
+                {resetStep === 'request' ? 'Reset Password' : 'Verify Code'}
+              </Text>
               <TouchableOpacity
                 onPress={() => setShowResetModal(false)}
                 style={styles.modalCloseBtn}
@@ -575,7 +604,9 @@ export default function AuthVisionCard({
             </View>
 
             <Text style={styles.modalSubtitle}>
-              Enter your account email and choose a new password.
+              {resetStep === 'request'
+                ? 'Enter your account email to receive a 6-digit verification code.'
+                : `Enter the 6-digit code sent to ${resetEmail} and your new password.`}
             </Text>
 
             {Boolean(resetError) && (
@@ -584,59 +615,114 @@ export default function AuthVisionCard({
               </View>
             )}
 
-            <Field
-              icon="mail"
-              placeholder="EMAIL"
-              value={resetEmail}
-              onChangeText={(val) => {
-                setResetEmail(val);
-                if (resetError) setResetError(null);
-              }}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-
-            <Field
-              icon="lock"
-              placeholder="NEW PASSWORD (MIN. 6 CHARS)"
-              value={resetPasswordVal}
-              onChangeText={(val) => {
-                setResetPasswordVal(val);
-                if (resetError) setResetError(null);
-              }}
-              secureTextEntry={!showResetPassword}
-              rightAdornment={
-                <EyeToggle
-                  visible={showResetPassword}
-                  onPress={() => setShowResetPassword(!showResetPassword)}
+            {resetStep === 'request' ? (
+              <>
+                <Field
+                  icon="mail"
+                  placeholder="EMAIL ADDRESS"
+                  value={resetEmail}
+                  onChangeText={(val) => {
+                    setResetEmail(val);
+                    if (resetError) setResetError(null);
+                  }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
                 />
-              }
-              autoCapitalize="none"
-            />
 
-            <TouchableOpacity
-              onPress={handlePerformResetPassword}
-              disabled={resetLoading || !resetEmail.trim() || resetPasswordVal.length < 6}
-              activeOpacity={0.88}
-              style={[
-                styles.ctaBtnWrapper,
-                resetPasswordVal.length >= 6 && styles.ctaBtnActiveShadow,
-                { marginTop: 10 },
-              ]}
-            >
-              <LinearGradient
-                colors={[AUTH_THEME.ctaFrom, AUTH_THEME.ctaTo]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.ctaBtn}
-              >
-                {resetLoading ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.ctaBtnText}>Update Password</Text>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleRequestResetOtp}
+                  disabled={resetLoading || !resetEmail.trim() || !resetEmail.includes('@')}
+                  activeOpacity={0.88}
+                  style={[
+                    styles.ctaBtnWrapper,
+                    resetEmail.includes('@') && styles.ctaBtnActiveShadow,
+                    { marginTop: 10 },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={[AUTH_THEME.ctaFrom, AUTH_THEME.ctaTo]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.ctaBtn}
+                  >
+                    {resetLoading ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.ctaBtnText}>Send Verification Code</Text>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Field
+                  icon="lock"
+                  placeholder="6-DIGIT VERIFICATION CODE"
+                  value={resetOtp}
+                  onChangeText={(val) => {
+                    setResetOtp(val);
+                    if (resetError) setResetError(null);
+                  }}
+                  keyboardType="number-pad"
+                  autoCapitalize="none"
+                />
+
+                <Field
+                  icon="lock"
+                  placeholder="NEW PASSWORD (MIN. 6 CHARS)"
+                  value={resetPasswordVal}
+                  onChangeText={(val) => {
+                    setResetPasswordVal(val);
+                    if (resetError) setResetError(null);
+                  }}
+                  secureTextEntry={!showResetPassword}
+                  rightAdornment={
+                    <EyeToggle
+                      visible={showResetPassword}
+                      onPress={() => setShowResetPassword(!showResetPassword)}
+                    />
+                  }
+                  autoCapitalize="none"
+                />
+
+                <TouchableOpacity
+                  onPress={handlePerformResetPassword}
+                  disabled={resetLoading || resetOtp.trim().length !== 6 || resetPasswordVal.length < 6}
+                  activeOpacity={0.88}
+                  style={[
+                    styles.ctaBtnWrapper,
+                    resetOtp.trim().length === 6 && resetPasswordVal.length >= 6 && styles.ctaBtnActiveShadow,
+                    { marginTop: 10 },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={[AUTH_THEME.ctaFrom, AUTH_THEME.ctaTo]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.ctaBtn}
+                  >
+                    {resetLoading ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.ctaBtnText}>Update Password</Text>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    setResetStep('request');
+                    setResetError(null);
+                  }}
+                  style={{ marginTop: 14, alignSelf: 'center' }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ fontSize: 13, color: AUTH_THEME.terracotta, fontWeight: '600' }}>
+                    ← Change email or resend code
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
       </Modal>

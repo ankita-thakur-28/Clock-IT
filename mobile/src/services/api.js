@@ -154,11 +154,25 @@ export async function loginUser({ email, password }) {
   return data;
 }
 
-export async function resetPassword({ email, newPassword }) {
+export async function forgotPassword({ email }) {
+  const res = await fetchWithTimeout(`${API_BASE}/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  }, 25000);
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to send verification code');
+  }
+  return data;
+}
+
+export async function resetPassword({ email, otp, newPassword }) {
   const res = await fetchWithTimeout(`${API_BASE}/auth/reset-password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, newPassword }),
+    body: JSON.stringify({ email, otp, newPassword }),
   }, 25000);
 
   const data = await res.json();
@@ -168,11 +182,11 @@ export async function resetPassword({ email, newPassword }) {
   return data;
 }
 
-export async function googleLogin({ email, name, googleId, avatarUrl }) {
+export async function googleLogin({ email, name, googleId, avatarUrl, idToken }) {
   const res = await fetchWithTimeout(`${API_BASE}/auth/google`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, name, googleId, avatarUrl }),
+    body: JSON.stringify({ email, name, googleId, avatarUrl, idToken }),
   }, 25000);
 
   const data = await res.json();

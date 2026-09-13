@@ -26,12 +26,12 @@ Each milestone = roughly 1–2 weeks of solo part-time work. Adjust to your exam
 ## MVP 1 — "Daily Checklist" (Habit Loop Slice)
 **Goal**: A user can log one day's self-care checklist and see it persist.
 
-- **DB**: Add `DailyLog` table (`id`, `user_id`, `date`, `skincare_am_done`, `skincare_pm_done`, `exercise_completed`). Skip weight/diet/workout details for now — just booleans.
+- **DB**: Add `DailyLog` table (`id`, `user_id`, `date`, `skincare_am_done`, `skincare_pm_done`, `exercise_completed`). Skip weight/detailed workout fields for now — just booleans.
 - **Backend**: CRUD for `DailyLog`, tied to `user_id` + `date`.
 - **Frontend**: Day Detail screen (Screen 5, simplified) — checkboxes only, no fancy modules yet.
 - **Ship it**: You now have Calendar Home (even a basic list of dates) + Day Detail working together.
 
-**Why second**: This is the habit-tracking backbone every other module (diet, workout, skincare detail) will plug into later. Get the checklist *pattern* right before adding complexity to it.
+**Why second**: This is the habit-tracking backbone every other module (workout, skincare, bodycare detail) will plug into later. Get the checklist *pattern* right before adding complexity to it.
 
 ---
 
@@ -57,59 +57,46 @@ Each milestone = roughly 1–2 weeks of solo part-time work. Adjust to your exam
 
 ---
 
-## MVP 4 — "AI Diet, One Meal at a Time" (First AI Slice)
-**Goal**: Prove the AI orchestrator pattern works, small.
-
-- **DB**: `MealPlan` table.
-- **Backend**: One endpoint — `POST /users/{id}/mealplan/today` → calls Claude API with goal + restrictions → returns structured JSON → save to DB.
-- **Frontend**: One card on Day Detail — "Today's Meals" with a "Regenerate" button. Skip macro rings, skip recipe sheets initially.
-- **Add the guardrail check here from day one** — even a simple version (calorie floor check, banned-word filter) — so you don't retrofit safety later. This is cheap to add now, expensive to bolt on after launch.
-
-**Why fourth, and deliberately narrow**: AI integration is the riskiest, most novel part of your stack. Prove it works for *one* thing (daily meal text) before building the full AI Studio tab, macro visualizations, and recipe sheets.
-
----
-
-## MVP 5 — "AI Workouts + Phase Awareness" (Second AI Slice)
-**Goal**: Workouts that actually change with the countdown phase — your core differentiator.
+## MVP 4 — "AI Workouts + Phase Awareness" (Phase-Adaptive Movement Slice)
+**Goal**: Workouts and movement routines that adapt directly to the countdown phase (Foundation → Build → Refine → Arrival) — your core differentiator.
 
 - **DB**: `WorkoutPlan` table.
-- **Backend**: `POST /users/{id}/workout/today`, phase-aware prompt.
-- **Frontend**: Workout card on Day Detail, checklist-style exercise list.
+- **Backend**: `POST /api/users/{id}/workout/today`, phase-aware prompt matching countdown progression and user goal.
+- **Frontend**: Workout card on Day Detail with checklist-style exercise items and recovery tips.
 
-**Why this matters as a checkpoint**: This is the moment your app stops being "a habit tracker with an AI bolted on" and becomes "the phase-adaptive app" you actually envisioned. Good milestone to pause and demo widely.
-
----
-
-## MVP 6 — "Progress You Can See" (Analytics Slice)
-**Goal**: Turn logged data into a reason to come back tomorrow.
-
-- **Backend**: Aggregation endpoint — streaks, adherence %, simple trend data.
-- **Frontend**: Screen 7, simplified — one chart (adherence heatmap or streak counter), skip weight trend lines unless a user has opted into weight tracking.
-
-**Why now**: Retention features matter more once you have a working core loop with real testers giving you data to show progress *on*.
+**Why this matters as a checkpoint**: This is the moment your app transforms from a generic habit tracker into a true phase-adaptive milestone companion without any restrictive diet baggage.
 
 ---
 
-## MVP 7 — "Equipment Scanner" (Vision Slice — Hardest, Do It Last)
-**Goal**: Your flashiest differentiator, built once everything else is stable.
+## MVP 5 — "Progress You Can See" (Analytics Slice)
+**Goal**: Turn logged routines into retention and motivation.
 
-- **Backend**: Image upload endpoint → Claude vision call → curated 40-machine matching logic.
+- **Backend**: Aggregation endpoint — streaks, adherence %, habit trends.
+- **Frontend**: Screen 7, simplified — adherence heatmap, streak counters, and non-scale wellness progress.
+
+**Why now**: Retention features compound value once you have a working habit logging loop with active users.
+
+---
+
+## MVP 6 — "Equipment Scanner" (Vision Slice — Hardest, Do It Last)
+**Goal**: Flashiest differentiator, built once habit and movement features are completely stable.
+
+- **Backend**: Image upload endpoint → Vision API call → curated 40-machine matching logic.
 - **Frontend**: Screen 8 camera view, Screen 10 exercise sheet.
 
-**Why last, not first (even though it's the "cool" feature)**: It's the highest technical risk (vision reliability, camera permissions, larger payloads) and depends on nothing else being broken underneath it. Solo devs who start with the flashy feature often burn their best motivation on the hardest problem before the foundation exists to support it.
+**Why last**: Highest technical risk (vision reliability, camera permissions, larger payloads); built after the foundation is proven.
 
 ---
 
 ## Deliberately deferred to "v2, if this gets traction"
 
-Don't build these until MVP 0–7 are solid and you have real users:
+Don't build these until MVP 0–6 are solid and you have real users:
 
 - Glow Feed / community layer
 - AI Coach Check-In escalation logic
-- Recipe detail sheets, macro rings, advanced visualizations
 - Notification scheduling system
-- Data export / full privacy center (build the *simple* version — a delete-account button — early; the polished version can wait)
-- Multi-goal/non-wedding milestone types beyond what onboarding already supports generically
+- Data export / full privacy center
+- Non-standard custom milestone extensions
 
 ---
 

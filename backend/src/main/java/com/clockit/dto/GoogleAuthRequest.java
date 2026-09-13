@@ -15,6 +15,8 @@ public class GoogleAuthRequest {
 
     private String avatarUrl;
 
+    private String idToken;
+
     public GoogleAuthRequest() {
     }
 
@@ -23,6 +25,14 @@ public class GoogleAuthRequest {
         this.name = name;
         this.googleId = googleId;
         this.avatarUrl = avatarUrl;
+    }
+
+    public GoogleAuthRequest(String email, String name, String googleId, String avatarUrl, String idToken) {
+        this.email = email;
+        this.name = name;
+        this.googleId = googleId;
+        this.avatarUrl = avatarUrl;
+        this.idToken = idToken;
     }
 
     public String getEmail() {
@@ -55,5 +65,13 @@ public class GoogleAuthRequest {
 
     public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
+    }
+
+    public String getIdToken() {
+        return idToken;
+    }
+
+    public void setIdToken(String idToken) {
+        this.idToken = idToken;
     }
 }

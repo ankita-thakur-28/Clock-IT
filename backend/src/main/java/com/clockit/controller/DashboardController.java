@@ -20,16 +20,34 @@ public class DashboardController {
         this.dashboardService = dashboardService;
     }
 
+    private boolean isNotOwner(org.springframework.security.core.Authentication authentication, Long userId) {
+        if (authentication != null && authentication.getCredentials() instanceof Long) {
+            Long authUserId = (Long) authentication.getCredentials();
+            return !authUserId.equals(userId);
+        }
+        return false;
+    }
+
     @GetMapping({"/api/v1/users/{id}/dashboard", "/api/users/{id}/dashboard"})
-    public ResponseEntity<DashboardResponse> getDashboard(@PathVariable Long id) {
+    public ResponseEntity<DashboardResponse> getDashboard(
+            @PathVariable Long id,
+            org.springframework.security.core.Authentication authentication
+    ) {
+        if (isNotOwner(authentication, id)) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN).build();
+        }
         return ResponseEntity.ok(dashboardService.getDashboard(id));
     }
 
     @PostMapping({"/api/v1/users/{id}/logs/today", "/api/users/{id}/logs/today"})
     public ResponseEntity<DashboardResponse> updateTodayLog(
             @PathVariable Long id,
-            @RequestBody DailyLogUpdateRequest request
+            @RequestBody DailyLogUpdateRequest request,
+            org.springframework.security.core.Authentication authentication
     ) {
+        if (isNotOwner(authentication, id)) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN).build();
+        }
         return ResponseEntity.ok(dashboardService.updateTodayLog(id, request));
     }
 
@@ -37,8 +55,12 @@ public class DashboardController {
     public ResponseEntity<List<DailyLogItemResponse>> getUserLogs(
             @PathVariable Long id,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            org.springframework.security.core.Authentication authentication
     ) {
+        if (isNotOwner(authentication, id)) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN).build();
+        }
         return ResponseEntity.ok(dashboardService.getUserDailyLogs(id, startDate, endDate));
     }
 
@@ -46,8 +68,12 @@ public class DashboardController {
     public ResponseEntity<DailyLogItemResponse> updateLogForDate(
             @PathVariable Long id,
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestBody DailyLogUpdateRequest request
+            @RequestBody DailyLogUpdateRequest request,
+            org.springframework.security.core.Authentication authentication
     ) {
+        if (isNotOwner(authentication, id)) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN).build();
+        }
         return ResponseEntity.ok(dashboardService.updateLogForDate(id, date, request));
     }
 }
