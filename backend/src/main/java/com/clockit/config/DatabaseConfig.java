@@ -12,6 +12,8 @@ import org.springframework.context.annotation.Primary;
 import javax.sql.DataSource;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.sql.Connection;
+import java.sql.Statement;
 
 @Configuration
 public class DatabaseConfig {
@@ -81,6 +83,26 @@ public class DatabaseConfig {
         config.setIdleTimeout(30000);
         config.setPoolName("ClockItHikariPool");
 
-        return new HikariDataSource(config);
+        HikariDataSource dataSource = new HikariDataSource(config);
+        runSchemaSafeguards(dataSource);
+        return dataSource;
+    }
+
+    private void runSchemaSafeguards(DataSource ds) {
+        try (Connection conn = ds.getConnection();
+             Statement stmt = conn.createStatement()) {
+            String dbProduct = conn.getMetaData().getDatabaseProductName();
+            if (dbProduct != null && dbProduct.toLowerCase().contains("postgresql")) {
+                log.info("Applying PostgreSQL schema migration safeguards for users table...");
+                stmt.execute("CREATE TABLE IF NOT EXISTS users (id BIGSERIAL PRIMARY KEY, name VARCHAR(255) NOT NULL, email VARCHAR(255))");
+                stmt.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255)");
+                stmt.execute("ALTER TABLE users ALTER COLUMN milestone_date DROP NOT NULL");
+                stmt.execute("ALTER TABLE users ALTER COLUMN milestone_type DROP NOT NULL");
+                stmt.execute("ALTER TABLE users ALTER COLUMN goal DROP NOT NULL");
+                log.info("PostgreSQL schema migration safeguards applied successfully.");
+            }
+        } catch (Exception e) {
+            log.warn("Database schema safeguard note: {}", e.getMessage());
+        }
     }
 }

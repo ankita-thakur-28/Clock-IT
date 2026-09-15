@@ -14,10 +14,23 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        String rootMsg = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
+        log.error("DataIntegrityViolationException caught: {}", rootMsg, ex);
+        String userFriendlyError = "Database constraint error";
+        if (rootMsg != null) {
+            if (rootMsg.contains("uq_users_email") || (rootMsg.toLowerCase().contains("duplicate key") && rootMsg.toLowerCase().contains("email"))) {
+                userFriendlyError = "An account with this email already exists";
+            } else {
+                userFriendlyError = rootMsg;
+            }
+        }
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
-                "error", "Database conflict: account or record with these details already exists"
+                "error", userFriendlyError,
+                "detail", rootMsg != null ? rootMsg : ""
         ));
     }
 
