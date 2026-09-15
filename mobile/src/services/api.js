@@ -15,7 +15,7 @@ export const API_BASE =
         default: 'https://clockit-backend.onrender.com/api',
       }));
 
-async function fetchWithTimeout(url, options = {}, timeoutMs = 25000) {
+async function fetchWithTimeout(url, options = {}, timeoutMs = 45000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -33,15 +33,34 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 25000) {
     return response;
   } catch (error) {
     clearTimeout(id);
+    if (error.name === 'AbortError') {
+      throw new Error('Connection timed out. The server may be waking up — please try again in a few moments.');
+    }
     throw error;
   }
 }
 
+async function parseJsonResponse(res, defaultErrorMsg = 'Request failed') {
+  const text = await res.text();
+  let data = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch (e) {
+    data = { error: text || `${defaultErrorMsg} (HTTP ${res.status})` };
+  }
+
+  if (!res.ok) {
+    const message = data.error || data.message || `${defaultErrorMsg} (HTTP ${res.status})`;
+    throw new Error(message);
+  }
+  return data;
+}
+
 export async function checkBackendHealth() {
   try {
-    const res = await fetchWithTimeout(`${API_BASE}/health`, { method: 'GET' }, 8000);
+    const res = await fetchWithTimeout(`${API_BASE}/health`, { method: 'GET' }, 10000);
     if (!res.ok) return false;
-    const data = await res.json();
+    const data = await parseJsonResponse(res);
     return data.status === 'UP';
   } catch (err) {
     return false;
@@ -55,29 +74,19 @@ export async function createUser(payload) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(payload),
-  }, 25000);
+  }, 45000);
 
-  if (!res.ok) {
-    throw new Error(`Server returned HTTP ${res.status}`);
-  }
-
-  return await res.json();
+  return await parseJsonResponse(res, 'Failed to create user');
 }
 
 export async function getUserById(id) {
   const res = await fetchWithTimeout(`${API_BASE}/users/${id}`, { method: 'GET' });
-  if (!res.ok) {
-    throw new Error(`Server returned HTTP ${res.status}`);
-  }
-  return await res.json();
+  return await parseJsonResponse(res, 'Failed to fetch user');
 }
 
 export async function fetchDashboard(userId = 1) {
   const res = await fetchWithTimeout(`${API_BASE}/v1/users/${userId}/dashboard`, { method: 'GET' });
-  if (!res.ok) {
-    throw new Error(`Server returned HTTP ${res.status}`);
-  }
-  return await res.json();
+  return await parseJsonResponse(res, 'Failed to fetch dashboard');
 }
 
 export async function updateTodayLog(userId = 1, payload) {
@@ -89,10 +98,7 @@ export async function updateTodayLog(userId = 1, payload) {
     body: JSON.stringify(payload),
   });
 
-  if (!res.ok) {
-    throw new Error(`Server returned HTTP ${res.status}`);
-  }
-  return await res.json();
+  return await parseJsonResponse(res, 'Failed to update log');
 }
 
 export async function fetchUserDailyLogs(userId = 1, startDate, endDate) {
@@ -105,10 +111,7 @@ export async function fetchUserDailyLogs(userId = 1, startDate, endDate) {
   }
 
   const res = await fetchWithTimeout(url, { method: 'GET' });
-  if (!res.ok) {
-    throw new Error(`Server returned HTTP ${res.status}`);
-  }
-  return await res.json();
+  return await parseJsonResponse(res, 'Failed to fetch daily logs');
 }
 
 export async function updateLogForDate(userId = 1, dateStr, payload) {
@@ -120,10 +123,7 @@ export async function updateLogForDate(userId = 1, dateStr, payload) {
     body: JSON.stringify(payload),
   });
 
-  if (!res.ok) {
-    throw new Error(`Server returned HTTP ${res.status}`);
-  }
-  return await res.json();
+  return await parseJsonResponse(res, 'Failed to update log for date');
 }
 
 export async function registerUser({ name, email, password }) {
@@ -131,13 +131,9 @@ export async function registerUser({ name, email, password }) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, email, password }),
-  }, 25000);
+  }, 45000);
 
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || `Registration failed with status ${res.status}`);
-  }
-  return data;
+  return await parseJsonResponse(res, 'Registration failed');
 }
 
 export async function loginUser({ email, password }) {
@@ -145,13 +141,9 @@ export async function loginUser({ email, password }) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
-  }, 25000);
+  }, 45000);
 
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || 'Invalid email or password');
-  }
-  return data;
+  return await parseJsonResponse(res, 'Invalid email or password');
 }
 
 export async function forgotPassword({ email }) {
@@ -159,13 +151,9 @@ export async function forgotPassword({ email }) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
-  }, 25000);
+  }, 45000);
 
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || 'Failed to send verification code');
-  }
-  return data;
+  return await parseJsonResponse(res, 'Failed to send verification code');
 }
 
 export async function resetPassword({ email, otp, newPassword }) {
@@ -173,13 +161,9 @@ export async function resetPassword({ email, otp, newPassword }) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, otp, newPassword }),
-  }, 25000);
+  }, 45000);
 
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || 'Password reset failed');
-  }
-  return data;
+  return await parseJsonResponse(res, 'Password reset failed');
 }
 
 export async function googleLogin({ email, name, googleId, avatarUrl, idToken }) {
@@ -187,24 +171,17 @@ export async function googleLogin({ email, name, googleId, avatarUrl, idToken })
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, name, googleId, avatarUrl, idToken }),
-  }, 25000);
+  }, 45000);
 
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || 'Google login failed');
-  }
-  return data;
+  return await parseJsonResponse(res, 'Google login failed');
 }
 
 export async function getAuthProfile() {
   const res = await fetchWithTimeout(`${API_BASE}/auth/me`, {
     method: 'GET',
-  }, 15000);
+  }, 25000);
 
-  if (!res.ok) {
-    throw new Error(`Failed to fetch profile: HTTP ${res.status}`);
-  }
-  return await res.json();
+  return await parseJsonResponse(res, 'Failed to fetch profile');
 }
 
 export async function updateUserMilestone(userId, payload) {
@@ -212,12 +189,8 @@ export async function updateUserMilestone(userId, payload) {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
-  }, 25000);
+  }, 45000);
 
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || `Failed to update milestone (HTTP ${res.status})`);
-  }
-  return data;
+  return await parseJsonResponse(res, 'Failed to update milestone');
 }
 
