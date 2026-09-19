@@ -235,28 +235,50 @@ public class DashboardService {
         // 1. Weight Card
         boolean weightLogged = log.getWeightAm() != null;
         String weightBadge = weightLogged ? "Logged ✓" : "Log";
-        String weightDetail = weightLogged ? "AM: " + log.getWeightAm() + " kg" : "Tap to record";
+        String weightDetail = weightLogged ? "AM: " + log.getWeightAm() + " kg" : "Not recorded yet";
         summary.setWeightCard(new DashboardResponse.WeightCardSummary(weightLogged, log.getWeightAm(), weightBadge, weightDetail));
 
         // 2. Skincare Card
-        boolean skincareDone = log.isSkincareAmDone();
+        boolean skincareAmDone = log.isSkincareAmDone();
+        boolean skincarePmDone = log.isSkincarePmDone();
+        boolean skincareDone = skincareAmDone || skincarePmDone;
         String skincareBadge = skincareDone ? "Done ✓" : "Log";
-        String skincareDetail = skincareDone ? "SPF & Glow Protected" : "SPF & Vitamin C";
-        summary.setSkincareCard(new DashboardResponse.SkincareCardSummary(skincareDone, log.isSkincarePmDone(), skincareBadge, skincareDetail));
+        String skincareDetail;
+        if (skincareAmDone && skincarePmDone) {
+            skincareDetail = "Full skincare (AM & PM) completed";
+        } else if (skincareAmDone) {
+            skincareDetail = "Morning skincare completed";
+        } else if (skincarePmDone) {
+            skincareDetail = "Evening skincare completed";
+        } else {
+            skincareDetail = "Morning & evening ritual";
+        }
+        summary.setSkincareCard(new DashboardResponse.SkincareCardSummary(skincareAmDone, skincarePmDone, skincareBadge, skincareDetail));
 
         // 3. Nutrition / Hair & Body Card
         boolean nutritionDone = log.isNutritionLogged();
         String nutritionBadge = nutritionDone ? "Done ✓" : "Log";
-        String nutritionDetail = nutritionDone ? "Glow & Nourished · Done" : "Scalp Oil, Scrub & Butter";
+        String nutritionDetail = nutritionDone ? "Hair & body care completed" : "Hair & body ritual";
         summary.setNutritionCard(new DashboardResponse.NutritionCardSummary(nutritionDone, log.getNutritionCalories(), log.getNutritionSummary(), nutritionBadge, nutritionDetail));
         summary.setBodyCareCard(new DashboardResponse.BodyCareCardSummary(nutritionDone, nutritionDone, nutritionDone, nutritionBadge, nutritionDetail));
 
         // 4. Workout Card
         boolean workoutDone = log.isWorkoutCompleted();
         String workoutBadge = workoutDone ? "Done ✓" : "Start";
-        String workoutDetail = workoutDone
-                ? (log.getWorkoutName() != null ? log.getWorkoutName() : "Workout") + (log.getWorkoutDurationMinutes() != null ? " · " + log.getWorkoutDurationMinutes() + "m" : "")
-                : "Glutes & Core · 40m";
+        String workoutDetail;
+        if (workoutDone) {
+            if (log.getWorkoutName() != null && log.getWorkoutDurationMinutes() != null) {
+                workoutDetail = log.getWorkoutName() + " · " + log.getWorkoutDurationMinutes() + "m";
+            } else if (log.getWorkoutName() != null) {
+                workoutDetail = log.getWorkoutName();
+            } else if (log.getWorkoutDurationMinutes() != null) {
+                workoutDetail = "Daily Workout · " + log.getWorkoutDurationMinutes() + "m";
+            } else {
+                workoutDetail = "Daily workout completed";
+            }
+        } else {
+            workoutDetail = "Daily movement";
+        }
         summary.setWorkoutCard(new DashboardResponse.WorkoutCardSummary(workoutDone, log.getWorkoutName(), log.getWorkoutDurationMinutes(), workoutBadge, workoutDetail));
 
         // Total Completed Count out of 4

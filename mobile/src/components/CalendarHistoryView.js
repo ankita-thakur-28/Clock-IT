@@ -19,6 +19,7 @@ export default function CalendarHistoryView({
   onOpenWeightModal,
   onOpenSkincareModal,
   onOpenBodyCareModal,
+  onToggleWorkout,
   onQuickTogglePastRoutine,
 }) {
   const today = new Date();
@@ -149,46 +150,76 @@ export default function CalendarHistoryView({
     year: 'numeric',
   });
 
-  // Extract real state per routine for selected date
+  // Extract real state per routine for selected date (no fabricated/mock text)
   const isWeightDone = isSelectedToday
     ? Boolean(todayGlow.weightCard?.logged)
     : Boolean(selectedLog && selectedLog.weightAm != null);
-  const weightValueText = isSelectedToday
-    ? todayGlow.weightCard?.logged
-      ? `${todayGlow.weightCard?.weightAm} kg recorded`
-      : 'Tap to record'
-    : selectedLog && selectedLog.weightAm != null
-    ? `${selectedLog.weightAm} kg recorded`
-    : 'Not logged';
+  const weightLoggedVal = isSelectedToday
+    ? (todayGlow.weightCard?.weightAm ?? null)
+    : (selectedLog && selectedLog.weightAm != null ? selectedLog.weightAm : null);
+  const weightUnitStr = (isSelectedToday ? todayGlow.weightCard?.weightUnit : null) || 'kg';
+  const weightValueText = isWeightDone
+    ? (weightLoggedVal != null ? `${weightLoggedVal} ${weightUnitStr} recorded` : 'Recorded')
+    : (isSelectedToday ? 'Not recorded yet' : 'Not logged');
 
-  const isSkincareDone = isSelectedToday
+  const skincareAmDone = isSelectedToday
     ? Boolean(todayGlow.skincareCard?.amDone)
-    : Boolean(selectedLog && (selectedLog.skincareAmDone || selectedLog.skincarePmDone));
-  const skincareValueText = isSelectedToday
-    ? todayGlow.skincareCard?.amDone
-      ? 'Morning routine completed'
-      : 'SPF & Vitamin C pending'
-    : selectedLog && (selectedLog.skincareAmDone || selectedLog.skincarePmDone)
-    ? 'Morning routine completed'
-    : 'Not logged';
+    : Boolean(selectedLog && selectedLog.skincareAmDone);
+  const skincarePmDone = isSelectedToday
+    ? Boolean(todayGlow.skincareCard?.pmDone)
+    : Boolean(selectedLog && selectedLog.skincarePmDone);
+  const isSkincareDone = skincareAmDone || skincarePmDone;
 
-  const isHairBodyDone = isSelectedToday
-    ? Boolean(todayGlow.bodyCareCard?.completed || todayGlow.bodyCareCard?.bodyDone || todayGlow.nutritionCard?.logged)
-    : Boolean(selectedLog && selectedLog.nutritionLogged);
-  const hairBodyValueText = isSelectedToday
-    ? (isHairBodyDone ? 'Glow & nourish completed' : 'Scalp oil & body care pending')
-    : (isHairBodyDone ? 'Care routine completed' : 'Not logged');
+  let skincareValueText = isSelectedToday ? 'Not logged yet' : 'Not logged';
+  if (skincareAmDone && skincarePmDone) {
+    skincareValueText = 'Full skincare (AM & PM) completed';
+  } else if (skincareAmDone) {
+    skincareValueText = 'Morning skincare completed';
+  } else if (skincarePmDone) {
+    skincareValueText = 'Evening skincare completed';
+  }
+
+  const bodyDone = isSelectedToday
+    ? Boolean(todayGlow.bodyCareCard?.bodyDone || todayGlow.bodyCareCard?.completed)
+    : Boolean(selectedLog && (selectedLog.bodyCareDone || selectedLog.nutritionLogged));
+  const hairDone = isSelectedToday
+    ? Boolean(todayGlow.bodyCareCard?.hairDone || todayGlow.bodyCareCard?.completed)
+    : Boolean(selectedLog && (selectedLog.bodyCareDone || selectedLog.nutritionLogged));
+  const isHairBodyDone = bodyDone || hairDone;
+
+  let hairBodyValueText = isSelectedToday ? 'Not logged yet' : 'Not logged';
+  if (bodyDone && hairDone) {
+    hairBodyValueText = 'Full hair & body care completed';
+  } else if (bodyDone) {
+    hairBodyValueText = 'Body care completed';
+  } else if (hairDone) {
+    hairBodyValueText = 'Hair & scalp care completed';
+  } else if (isHairBodyDone) {
+    hairBodyValueText = 'Care routine completed';
+  }
 
   const isWorkoutDone = isSelectedToday
     ? Boolean(todayGlow.workoutCard?.completed)
     : Boolean(selectedLog && selectedLog.workoutCompleted);
-  const workoutValueText = isSelectedToday
-    ? todayGlow.workoutCard?.completed
-      ? 'Glutes & Core · 40m'
-      : 'Daily split pending'
-    : selectedLog && selectedLog.workoutCompleted
-    ? `${selectedLog.workoutName || 'Workout'} · ${selectedLog.workoutDurationMinutes || 40}m`
-    : 'Not logged';
+  const workoutNameVal = isSelectedToday
+    ? (todayGlow.workoutCard?.name || null)
+    : (selectedLog?.workoutName || null);
+  const workoutMinsVal = isSelectedToday
+    ? (todayGlow.workoutCard?.durationMinutes || null)
+    : (selectedLog?.workoutDurationMinutes || null);
+
+  let workoutValueText = isSelectedToday ? 'Not logged yet' : 'Not logged';
+  if (isWorkoutDone) {
+    if (workoutNameVal && workoutMinsVal) {
+      workoutValueText = `${workoutNameVal} · ${workoutMinsVal}m`;
+    } else if (workoutNameVal && workoutNameVal !== 'Daily Workout') {
+      workoutValueText = workoutNameVal;
+    } else if (workoutMinsVal) {
+      workoutValueText = `Workout · ${workoutMinsVal}m`;
+    } else {
+      workoutValueText = 'Daily movement completed';
+    }
+  }
 
   return (
     <ScrollView
@@ -396,11 +427,15 @@ export default function CalendarHistoryView({
           </TouchableOpacity>
 
           {/* Workout */}
-          <View style={styles.logRow}>
+          <TouchableOpacity
+            style={styles.logRow}
+            onPress={isSelectedToday && onToggleWorkout ? onToggleWorkout : undefined}
+            activeOpacity={isSelectedToday && onToggleWorkout ? 0.7 : 1}
+          >
             <View style={styles.logLeft}>
               <Text style={styles.logEmoji}>🏋️‍♀️</Text>
               <View>
-                <Text style={styles.logName}>Workout & Split</Text>
+                <Text style={styles.logName}>Workout & Movement</Text>
                 <Text style={styles.logSubtext}>{workoutValueText}</Text>
               </View>
             </View>
@@ -419,7 +454,7 @@ export default function CalendarHistoryView({
                 {isWorkoutDone ? 'Done ✓' : isSelectedToday ? 'Start' : '—'}
               </Text>
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -440,7 +475,11 @@ export default function CalendarHistoryView({
           <View style={styles.statDivider} />
           <View style={styles.statBox}>
             <Text style={styles.statValue}>
-              {dashboard?.countdown?.daysRemaining ?? 137}d
+              {dashboard?.countdown?.daysRemaining != null
+                ? `${dashboard.countdown.daysRemaining}d`
+                : targetDateObj
+                ? `${Math.max(0, Math.round((targetDateObj - new Date().setHours(0, 0, 0, 0)) / (1000 * 60 * 60 * 24)))}d`
+                : '0d'}
             </Text>
             <Text style={styles.statLabel}>To {milestoneType}</Text>
           </View>

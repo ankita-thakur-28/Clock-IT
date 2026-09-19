@@ -201,7 +201,7 @@ function AppContent({ initialSession }) {
       hairDone: todayGlow.bodyCareCard?.hairDone ?? isHairBodyDone,
       completed: isHairBodyDone,
       badge: isHairBodyDone ? 'Done ✓' : 'Log',
-      detail: isHairBodyDone ? 'Glow & Nourished · Done' : 'Scalp Oil, Scrub & Butter',
+      detail: isHairBodyDone ? 'Hair & body care completed' : 'Hair & body ritual',
     };
 
     return {
@@ -478,10 +478,10 @@ function AppContent({ initialSession }) {
       todayGlow: {
         completedCount: 0,
         totalCount: 4,
-        weightCard: { logged: false, badge: 'Log', detail: 'Tap to record' },
-        skincareCard: { amDone: false, badge: 'Log', detail: 'SPF & Vitamin C' },
-        bodyCareCard: { bodyDone: false, hairDone: false, completed: false, badge: 'Log', detail: 'Scalp Oil, Scrub & Butter' },
-        workoutCard: { completed: false, badge: 'Start', detail: 'Glutes & Core · 40m' },
+        weightCard: { logged: false, badge: 'Log', detail: 'Not recorded yet' },
+        skincareCard: { amDone: false, badge: 'Log', detail: 'Morning & evening ritual' },
+        bodyCareCard: { bodyDone: false, hairDone: false, completed: false, badge: 'Log', detail: 'Hair & body ritual' },
+        workoutCard: { completed: false, badge: 'Start', detail: 'Daily movement' },
       },
     };
 
@@ -547,8 +547,9 @@ function AppContent({ initialSession }) {
       skincareAmDone: Boolean(updatedGlow.skincareCard?.amDone),
       skincarePmDone: Boolean(updatedGlow.skincareCard?.pmDone),
       workoutCompleted: Boolean(updatedGlow.workoutCard?.completed),
-      workoutName: updatedGlow.workoutCard?.completed ? 'Glutes & Core' : null,
-      workoutDurationMinutes: updatedGlow.workoutCard?.completed ? 40 : null,
+      workoutName: updatedGlow.workoutCard?.completed ? (updatedGlow.workoutCard?.name || 'Daily Workout') : null,
+      workoutDurationMinutes: updatedGlow.workoutCard?.completed ? (updatedGlow.workoutCard?.durationMinutes || null) : null,
+      bodyCareDone: Boolean(updatedGlow.bodyCareCard?.completed || updatedGlow.bodyCareCard?.bodyDone),
       nutritionLogged: Boolean(updatedGlow.bodyCareCard?.completed || updatedGlow.bodyCareCard?.bodyDone),
       completedCount: updatedGlow.completedCount || 0,
     };
@@ -572,10 +573,10 @@ function AppContent({ initialSession }) {
     const currentGlow = dashboard?.todayGlow || {
       completedCount: 0,
       totalCount: 4,
-      weightCard: { logged: false, badge: 'Log', detail: 'Tap to record', weightAm: null },
-      skincareCard: { amDone: false, badge: 'Log', detail: 'SPF & Vitamin C' },
-      bodyCareCard: { bodyDone: false, hairDone: false, completed: false, badge: 'Log', detail: 'Scalp Oil, Scrub & Butter' },
-      workoutCard: { completed: false, badge: 'Start', detail: 'Glutes & Core · 40m' },
+      weightCard: { logged: false, badge: 'Log', detail: 'Not recorded yet', weightAm: null },
+      skincareCard: { amDone: false, badge: 'Log', detail: 'Morning & evening ritual' },
+      bodyCareCard: { bodyDone: false, hairDone: false, completed: false, badge: 'Log', detail: 'Hair & body ritual' },
+      workoutCard: { completed: false, badge: 'Start', detail: 'Daily movement' },
     };
 
     let updatePayload = { module: moduleType };
@@ -588,29 +589,32 @@ function AppContent({ initialSession }) {
         ...newGlow.skincareCard,
         amDone: nextDone,
         badge: nextDone ? 'Done ✓' : 'Log',
-        detail: nextDone ? 'SPF & Glow Protected' : 'SPF & Vitamin C',
+        detail: nextDone ? 'Morning skincare completed' : 'Morning & evening ritual',
       };
     } else if (moduleType === 'body_care' || moduleType === 'nutrition') {
       const nextDone = !(currentGlow.bodyCareCard?.completed || currentGlow.bodyCareCard?.bodyDone);
       updatePayload.nutritionLogged = nextDone;
+      updatePayload.bodyCareDone = nextDone;
       newGlow.bodyCareCard = {
         ...newGlow.bodyCareCard,
         bodyDone: nextDone,
         hairDone: nextDone,
         completed: nextDone,
         badge: nextDone ? 'Done ✓' : 'Log',
-        detail: nextDone ? 'Glow & Nourished · Done' : 'Scalp Oil, Scrub & Butter',
+        detail: nextDone ? 'Hair & body care logged' : 'Hair & body ritual',
       };
     } else if (moduleType === 'workout') {
       const nextDone = !(currentGlow.workoutCard?.completed);
       updatePayload.workoutCompleted = nextDone;
-      updatePayload.workoutName = nextDone ? 'Glutes & Core' : null;
-      updatePayload.workoutDurationMinutes = nextDone ? 40 : null;
+      updatePayload.workoutName = nextDone ? 'Daily Workout' : null;
+      updatePayload.workoutDurationMinutes = null;
       newGlow.workoutCard = {
         ...newGlow.workoutCard,
         completed: nextDone,
         badge: nextDone ? 'Done ✓' : 'Start',
-        detail: 'Glutes & Core · 40m',
+        detail: nextDone ? 'Daily Workout · Done' : 'Daily movement',
+        name: nextDone ? 'Daily Workout' : null,
+        durationMinutes: null,
       };
     }
 
@@ -660,10 +664,10 @@ function AppContent({ initialSession }) {
     const currentGlow = dashboard?.todayGlow || {
       completedCount: 0,
       totalCount: 4,
-      weightCard: { logged: false, badge: 'Log', detail: 'Tap to record', weightAm: null },
-      skincareCard: { amDone: false, badge: 'Log', detail: 'SPF & Vitamin C' },
-      bodyCareCard: { bodyDone: false, hairDone: false, completed: false, badge: 'Log', detail: 'Scalp Oil, Scrub & Butter' },
-      workoutCard: { completed: false, badge: 'Start', detail: 'Glutes & Core · 40m' },
+      weightCard: { logged: false, badge: 'Log', detail: 'Not recorded yet', weightAm: null },
+      skincareCard: { amDone: false, badge: 'Log', detail: 'Morning & evening ritual' },
+      bodyCareCard: { bodyDone: false, hairDone: false, completed: false, badge: 'Log', detail: 'Hair & body ritual' },
+      workoutCard: { completed: false, badge: 'Start', detail: 'Daily movement' },
     };
     const newGlow = { ...currentGlow };
     newGlow.weightCard = {
@@ -722,18 +726,27 @@ function AppContent({ initialSession }) {
     const currentGlow = dashboard?.todayGlow || {
       completedCount: 0,
       totalCount: 4,
-      weightCard: { logged: false, badge: 'Log', detail: 'Tap to record', weightAm: null },
-      skincareCard: { amDone: false, badge: 'Log', detail: 'SPF & Vitamin C' },
-      bodyCareCard: { bodyDone: false, hairDone: false, completed: false, badge: 'Log', detail: 'Scalp Oil, Scrub & Butter' },
-      workoutCard: { completed: false, badge: 'Start', detail: 'Glutes & Core · 40m' },
+      weightCard: { logged: false, badge: 'Log', detail: 'Not recorded yet', weightAm: null },
+      skincareCard: { amDone: false, badge: 'Log', detail: 'Morning & evening ritual' },
+      bodyCareCard: { bodyDone: false, hairDone: false, completed: false, badge: 'Log', detail: 'Hair & body ritual' },
+      workoutCard: { completed: false, badge: 'Start', detail: 'Daily movement' },
     };
     const newGlow = { ...currentGlow };
+    const hasAnyDone = Boolean(skincarePayload.amDone || skincarePayload.pmDone);
+    let skinDetail = 'Morning & evening ritual';
+    if (skincarePayload.amDone && skincarePayload.pmDone) {
+      skinDetail = 'Full skincare (AM & PM) completed';
+    } else if (skincarePayload.amDone) {
+      skinDetail = 'Morning skincare completed';
+    } else if (skincarePayload.pmDone) {
+      skinDetail = 'Evening skincare completed';
+    }
     newGlow.skincareCard = {
       ...newGlow.skincareCard,
       amDone: skincarePayload.amDone,
       pmDone: skincarePayload.pmDone,
-      badge: skincarePayload.amDone ? 'Done ✓' : 'Log',
-      detail: skincarePayload.amDone ? 'SPF & Glow Protected' : 'SPF & Vitamin C',
+      badge: hasAnyDone ? 'Done ✓' : 'Log',
+      detail: skinDetail,
     };
 
     let completed = 0;
@@ -790,10 +803,10 @@ function AppContent({ initialSession }) {
     const currentGlow = dashboard?.todayGlow || {
       completedCount: 0,
       totalCount: 4,
-      weightCard: { logged: false, badge: 'Log', detail: 'Tap to record', weightAm: null },
-      skincareCard: { amDone: false, badge: 'Log', detail: 'SPF & Vitamin C' },
-      bodyCareCard: { bodyDone: false, hairDone: false, completed: false, badge: 'Log', detail: 'Scalp Oil, Scrub & Butter' },
-      workoutCard: { completed: false, badge: 'Start', detail: 'Glutes & Core · 40m' },
+      weightCard: { logged: false, badge: 'Log', detail: 'Not recorded yet', weightAm: null },
+      skincareCard: { amDone: false, badge: 'Log', detail: 'Morning & evening ritual' },
+      bodyCareCard: { bodyDone: false, hairDone: false, completed: false, badge: 'Log', detail: 'Hair & body ritual' },
+      workoutCard: { completed: false, badge: 'Start', detail: 'Daily movement' },
     };
     const newGlow = { ...currentGlow };
     newGlow.bodyCareCard = {
@@ -802,14 +815,14 @@ function AppContent({ initialSession }) {
       hairDone: isAnyDone,
       completed: isAnyDone,
       badge: isAnyDone ? 'Done ✓' : 'Log',
-      detail: isAnyDone ? 'Glow & Nourished · Done' : 'Scalp Oil, Scrub & Butter',
+      detail: isAnyDone ? 'Hair & body care completed' : 'Hair & body ritual',
     };
     if (newGlow.nutritionCard) {
       newGlow.nutritionCard = {
         ...newGlow.nutritionCard,
         logged: isAnyDone,
         badge: isAnyDone ? 'Done ✓' : 'Log',
-        detail: isAnyDone ? 'Glow & Nourished · Done' : 'Scalp Oil, Scrub & Butter',
+        detail: isAnyDone ? 'Hair & body care completed' : 'Hair & body ritual',
       };
     }
 
@@ -908,10 +921,10 @@ function AppContent({ initialSession }) {
     const todayGlow = dashboard?.todayGlow || {
       completedCount: 0,
       totalCount: 4,
-      weightCard: { logged: false, badge: 'Log', detail: 'Tap to record' },
-      skincareCard: { amDone: false, badge: 'Log', detail: 'SPF & Vitamin C' },
-      bodyCareCard: { bodyDone: false, hairDone: false, completed: false, badge: 'Log', detail: 'Scalp Oil, Scrub & Butter' },
-      workoutCard: { completed: false, badge: 'Start', detail: activeWorkoutDetail },
+      weightCard: { logged: false, badge: 'Log', detail: 'Not recorded yet' },
+      skincareCard: { amDone: false, badge: 'Log', detail: 'Morning & evening ritual' },
+      bodyCareCard: { bodyDone: false, hairDone: false, completed: false, badge: 'Log', detail: 'Hair & body ritual' },
+      workoutCard: { completed: false, badge: 'Start', detail: 'Daily movement' },
     };
 
     return (
@@ -1375,6 +1388,7 @@ function AppContent({ initialSession }) {
                 onOpenWeightModal={() => setShowWeightModal(true)}
                 onOpenSkincareModal={() => setShowSkincareModal(true)}
                 onOpenBodyCareModal={() => setShowBodyCareModal(true)}
+                onToggleWorkout={() => handleRoutineToggle('workout')}
               />
             )}
 

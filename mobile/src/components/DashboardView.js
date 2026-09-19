@@ -32,10 +32,10 @@ export default function DashboardView({
   const todayGlow = dashboardData?.todayGlow || {
     completedCount: 0,
     totalCount: 4,
-    weightCard: { logged: false, badge: 'Log AM', detail: 'Tap to record' },
-    skincareCard: { amDone: false, badge: 'Start AM', detail: 'SPF & Vitamin C' },
-    nutritionCard: { logged: false, badge: 'Log Meal', detail: '1,450 kcal · High Pro' },
-    workoutCard: { completed: false, badge: 'Open →', detail: 'Glutes & Core · 40m' },
+    weightCard: { logged: false, badge: 'Log AM', detail: 'Not recorded yet' },
+    skincareCard: { amDone: false, badge: 'Start AM', detail: 'Morning & evening ritual' },
+    nutritionCard: { logged: false, badge: 'Log Meal', detail: 'Healthy meals & hydration' },
+    workoutCard: { completed: false, badge: 'Open →', detail: 'Daily movement' },
   };
 
   return (
@@ -110,7 +110,7 @@ export default function DashboardView({
             <RoutineCard
               icon="⚖️"
               title="Weight Log"
-              detail={todayGlow.weightCard?.detail || 'Tap to record'}
+              detail={todayGlow.weightCard?.detail || 'Not recorded yet'}
               badge={todayGlow.weightCard?.badge || 'Log AM'}
               completed={todayGlow.weightCard?.logged}
               onPress={() => onUpdateRoutine && onUpdateRoutine('weight')}
@@ -119,7 +119,7 @@ export default function DashboardView({
             <RoutineCard
               icon="✨"
               title="Skincare Routine"
-              detail={todayGlow.skincareCard?.detail || 'SPF & Vitamin C'}
+              detail={todayGlow.skincareCard?.detail || 'Morning & evening ritual'}
               badge={todayGlow.skincareCard?.badge || 'Start AM'}
               completed={todayGlow.skincareCard?.amDone}
               onPress={() => onUpdateRoutine && onUpdateRoutine('skincare_am')}
@@ -130,7 +130,7 @@ export default function DashboardView({
             <RoutineCard
               icon="🥗"
               title="AI Nutrition"
-              detail={todayGlow.nutritionCard?.detail || '1,450 kcal · High Pro'}
+              detail={todayGlow.nutritionCard?.detail || 'Healthy meals & hydration'}
               badge={todayGlow.nutritionCard?.badge || 'Log Meal'}
               completed={todayGlow.nutritionCard?.logged}
               onPress={() => onUpdateRoutine && onUpdateRoutine('nutrition')}
@@ -139,7 +139,7 @@ export default function DashboardView({
             <RoutineCard
               icon="🏋️‍♀️"
               title="AI Trainer Split"
-              detail={todayGlow.workoutCard?.detail || 'Glutes & Core · 40m'}
+              detail={todayGlow.workoutCard?.detail || 'Daily movement'}
               badge={todayGlow.workoutCard?.badge || 'Open →'}
               completed={todayGlow.workoutCard?.completed}
               onPress={() => onUpdateRoutine && onUpdateRoutine('workout')}
