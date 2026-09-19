@@ -1361,15 +1361,6 @@ function AppContent({ initialSession }) {
                     />
                   </View>
                 </View>
-
-                {/* Return Link */}
-                <TouchableOpacity
-                  onPress={() => setStep('setup')}
-                  style={styles.changeMilestoneBtn}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.changeMilestoneText}>← Set another milestone</Text>
-                </TouchableOpacity>
               </View>
             )}
 
@@ -2152,16 +2143,6 @@ const styles = StyleSheet.create({
   routineRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-  },
-  changeMilestoneBtn: {
-    alignItems: 'center',
-    paddingVertical: 4,
-    marginBottom: 2,
-  },
-  changeMilestoneText: {
-    fontFamily: THEME.fonts.bodySemiBold,
-    fontSize: 11,
-    color: THEME.roseGold,
   },
   sectionHeaderOverline: {
     fontFamily: THEME.fonts.bodyBold,
