@@ -855,112 +855,6 @@ function AppContent({ initialSession }) {
     }
   };
 
-  const handleCompleteAllToday = async () => {
-    const currentGlow = dashboard?.todayGlow || {
-      completedCount: 0,
-      totalCount: 4,
-      weightCard: { logged: false, badge: 'Log', detail: 'Tap to record', weightAm: null },
-      skincareCard: { amDone: false, badge: 'Log', detail: 'SPF & Vitamin C' },
-      bodyCareCard: { bodyDone: false, hairDone: false, completed: false, badge: 'Log', detail: 'Scalp Oil, Scrub & Butter' },
-      workoutCard: { completed: false, badge: 'Start', detail: 'Glutes & Core · 40m' },
-    };
-
-    // Collect ONLY the data that the user has ACTUALLY logged
-    const isWeightLogged = Boolean(currentGlow.weightCard?.logged && (currentGlow.weightCard?.weightAm != null || loggedWeight != null));
-    const finalWeightAm = isWeightLogged ? (currentGlow.weightCard?.weightAm ?? loggedWeight) : null;
-
-    const isSkincareAmDone = Boolean(currentGlow.skincareCard?.amDone);
-    const isSkincarePmDone = Boolean(currentGlow.skincareCard?.pmDone);
-
-    const isBodyCareDone = Boolean(
-      currentGlow.bodyCareCard?.completed ||
-      currentGlow.bodyCareCard?.bodyDone ||
-      currentGlow.bodyCareCard?.hairDone ||
-      currentGlow.nutritionCard?.logged
-    );
-
-    const isWorkoutDone = Boolean(currentGlow.workoutCard?.completed);
-    const workoutName = isWorkoutDone ? (currentGlow.workoutCard?.name || 'Glutes & Core') : null;
-    const workoutDuration = isWorkoutDone ? (currentGlow.workoutCard?.durationMinutes || 40) : null;
-
-    // Real count (NO fake/fabricated completions)
-    let realCompletedCount = 0;
-    if (isWeightLogged) realCompletedCount++;
-    if (isSkincareAmDone) realCompletedCount++;
-    if (isBodyCareDone) realCompletedCount++;
-    if (isWorkoutDone) realCompletedCount++;
-
-    const isAnyActive = realCompletedCount > 0;
-    const prevStreak = dashboard?.streak?.currentStreak || 0;
-    const newStreakVal = isAnyActive ? Math.max(1, prevStreak) : prevStreak;
-
-    const committedGlow = {
-      completedCount: realCompletedCount,
-      totalCount: 4,
-      weightCard: {
-        logged: isWeightLogged,
-        weightAm: finalWeightAm,
-        badge: isWeightLogged ? 'Logged ✓' : 'Log',
-        detail: isWeightLogged ? `${finalWeightAm} ${weightUnit || 'kg'} · Recorded` : 'Tap to record',
-      },
-      skincareCard: {
-        amDone: isSkincareAmDone,
-        pmDone: isSkincarePmDone,
-        badge: isSkincareAmDone ? 'Done ✓' : 'Log',
-        detail: isSkincareAmDone ? 'SPF & Glow Protected' : 'SPF & Vitamin C',
-      },
-      bodyCareCard: {
-        completed: isBodyCareDone,
-        bodyDone: isBodyCareDone,
-        hairDone: isBodyCareDone,
-        badge: isBodyCareDone ? 'Done ✓' : 'Log',
-        detail: isBodyCareDone ? 'Glow & Nourished · Done' : 'Scalp Oil, Scrub & Butter',
-      },
-      workoutCard: {
-        completed: isWorkoutDone,
-        badge: isWorkoutDone ? 'Done ✓' : 'Start',
-        detail: 'Glutes & Core · 40m',
-      },
-    };
-
-    syncTodayHistoryLog(committedGlow);
-
-    setDashboard((prev) => ({
-      ...prev,
-      todayGlow: committedGlow,
-      streak: {
-        currentStreak: newStreakVal,
-        streakText: `${newStreakVal}d`,
-        activeToday: isAnyActive,
-      },
-    }));
-
-    try {
-      const payload = {
-        weightAm: finalWeightAm,
-        skincareAmDone: isSkincareAmDone,
-        skincarePmDone: isSkincarePmDone,
-        nutritionLogged: isBodyCareDone,
-        bodyCareDone: isBodyCareDone,
-        workoutCompleted: isWorkoutDone,
-        workoutName: workoutName,
-        workoutDurationMinutes: workoutDuration,
-      };
-
-      const updatedData = await updateTodayLog(userData?.id || 1, payload);
-      if (updatedData) {
-        const normalized = normalizeDashboard(updatedData);
-        setDashboard(normalized);
-        saveCachedDashboard(normalized);
-        if (normalized.todayGlow?.weightCard?.logged && normalized.todayGlow?.weightCard?.weightAm != null) {
-          setLoggedWeight(normalized.todayGlow.weightCard.weightAm);
-        }
-      }
-    } catch (err) {
-      console.warn('Complete/commit backend sync failed, saved locally:', err);
-    }
-  };
-
   const handleResetMilestone = async () => {
     await clearActiveUser();
     setUserData(null);
@@ -1467,22 +1361,6 @@ function AppContent({ initialSession }) {
                     />
                   </View>
                 </View>
-
-                {/* Primary Action CTA */}
-                <TouchableOpacity
-                  onPress={handleCompleteAllToday}
-                  activeOpacity={0.88}
-                  style={styles.completeAllBtnWrapper}
-                >
-                  <LinearGradient
-                    colors={[THEME.peachDeep, THEME.pinkDeep]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.completeAllBtn}
-                  >
-                    <Text style={styles.completeAllBtnText}>Complete</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
 
                 {/* Return Link */}
                 <TouchableOpacity
@@ -2274,28 +2152,6 @@ const styles = StyleSheet.create({
   routineRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-  },
-  completeAllBtnWrapper: {
-    borderRadius: 100,
-    shadowColor: '#F195AC',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 3,
-    marginTop: 6,
-    marginBottom: 4,
-  },
-  completeAllBtn: {
-    paddingVertical: 13,
-    borderRadius: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  completeAllBtnText: {
-    fontFamily: THEME.fonts.bodyBold,
-    fontSize: 14,
-    color: '#FFFFFF',
-    letterSpacing: 0.4,
   },
   changeMilestoneBtn: {
     alignItems: 'center',
